@@ -5,6 +5,7 @@ add_library(
 
   OBJECT
 
+  KTest.c
   bio.c
   bio_mem.c
   buffer.c

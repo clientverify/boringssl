@@ -25,6 +25,7 @@
 #include "internal.h"
 #include "transport_common.h"
 
+#include "../crypto/bio/KTest.h"
 
 static const struct argument kArguments[] = {
     {
