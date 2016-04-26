@@ -12,6 +12,7 @@
  * OF CONTRACT, NEGLIGENCE OR OTHER TORTIOUS ACTION, ARISING OUT OF OR IN
  * CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE. */
 
+#include <iostream>
 #include <openssl/base.h>
 
 #include <string>
@@ -47,6 +48,9 @@ typedef int ssize_t;
 
 #include "internal.h"
 
+#ifdef CLIVER
+#include "../crypto/bio/KTest.h"
+#endif
 
 #if !defined(OPENSSL_WINDOWS)
 static int closesocket(int sock) {
@@ -73,6 +77,8 @@ bool Connect(int *out_sock, const std::string &hostname_and_port) {
   const size_t colon_offset = hostname_and_port.find_last_of(':');
   std::string hostname, port;
 
+  std::cout << "Happy Tuesday, got to connect\n";
+
   if (colon_offset == std::string::npos) {
     hostname = hostname_and_port;
     port = "443";
@@ -86,7 +92,12 @@ bool Connect(int *out_sock, const std::string &hostname_and_port) {
   hint.ai_family = AF_UNSPEC;
   hint.ai_socktype = SOCK_STREAM;
 
-  int ret = getaddrinfo(hostname.c_str(), port.c_str(), &hint, &result);
+  int ret;
+#ifdef CLIVER
+    ret = kTest_getaddrinfo(hostname.c_str(), port.c_str(), &hint, &result);
+#else
+    ret = getaddrinfo(hostname.c_str(), port.c_str(), &hint, &result);
+#endif
   if (ret != 0) {
     fprintf(stderr, "getaddrinfo returned: %s\n", gai_strerror(ret));
     return false;
@@ -121,10 +132,18 @@ bool Connect(int *out_sock, const std::string &hostname_and_port) {
     }
   }
 
+#ifdef CLIVER
+    if (ktest_connect(*out_sock, result->ai_addr, result->ai_addrlen) == -1){
+      perror("connect");
+      goto out;
+    }
+#else
   if (connect(*out_sock, result->ai_addr, result->ai_addrlen) != 0) {
     perror("connect");
     goto out;
   }
+#endif
+
   ok = true;
 
 out:
@@ -239,7 +258,14 @@ bool TransferData(SSL *ssl, int sock) {
     }
     FD_SET(sock, &read_fds);
 
-    int ret = select(sock + 1, &read_fds, NULL, NULL, NULL);
+    //XXX:Marie ask andrew what to do about select?
+    int ret;
+#ifdef CLIVER
+    ret = ktest_select(sock + 1, &read_fds, NULL, NULL, NULL);
+#else
+    ret = select(sock + 1, &read_fds, NULL, NULL, NULL);
+#endif
+
     if (ret <= 0) {
       perror("select");
       return false;
@@ -248,9 +274,15 @@ bool TransferData(SSL *ssl, int sock) {
     if (FD_ISSET(0, &read_fds)) {
       uint8_t buffer[512];
       ssize_t n;
-
+      //XXX:Marie read operation, need to record what is read, and return val
       do {
+      //Note: whole thing will break if ktest_raw_read_stdin doesn't follow read
+      //return codes...
+#ifdef CLIVER
+        n = ktest_raw_read_stdin(buffer, sizeof(buffer));
+#else
         n = read(0, buffer, sizeof(buffer));
+#endif
       } while (n == -1 && errno == EINTR);
 
       if (n == 0) {
@@ -259,6 +291,10 @@ bool TransferData(SSL *ssl, int sock) {
 #if !defined(OPENSSL_WINDOWS)
         shutdown(sock, SHUT_WR);
 #else
+        //XXX:Marie SSL_shutdown is very complicated.  Idk why it is not being
+        //called here...
+        //We do not worry about this as there should be no other messages from 
+        //this point on :)
         shutdown(sock, SD_SEND);
 #endif
         continue;
@@ -270,6 +306,7 @@ bool TransferData(SSL *ssl, int sock) {
       if (!SocketSetNonBlocking(sock, false)) {
         return false;
       }
+      //XXX:Marie this is a send point (think covered at lower level)
       int ssl_ret = SSL_write(ssl, buffer, n);
       if (!SocketSetNonBlocking(sock, true)) {
         return false;
@@ -288,6 +325,7 @@ bool TransferData(SSL *ssl, int sock) {
 
     if (FD_ISSET(sock, &read_fds)) {
       uint8_t buffer[512];
+      //XXX:Marie think this should be covered by lowerlevel read/write
       int ssl_ret = SSL_read(ssl, buffer, sizeof(buffer));
 
       if (ssl_ret < 0) {
@@ -303,6 +341,7 @@ bool TransferData(SSL *ssl, int sock) {
       }
 
       ssize_t n;
+      //XXX:Marie I don't think that the write out matters, just the read in.
       do {
         n = write(1, buffer, ssl_ret);
       } while (n == -1 && errno == EINTR);

@@ -14,6 +14,8 @@
 
 #include <openssl/rand.h>
 
+#include <stdio.h>
+
 #include <assert.h>
 #include <limits.h>
 #include <string.h>
@@ -114,6 +116,10 @@ static int hwrand(uint8_t *buf, size_t len) {
 
 #endif
 
+
+#ifdef CLIVER
+#undef RAND_bytes
+#endif
 int RAND_bytes(uint8_t *buf, size_t len) {
   if (len == 0) {
     return 1;
@@ -188,6 +194,11 @@ int RAND_bytes(uint8_t *buf, size_t len) {
   return 1;
 }
 
+
+
+#ifdef CLIVER
+#undef RAND_pseudo_bytes
+#endif
 int RAND_pseudo_bytes(uint8_t *buf, size_t len) {
   return RAND_bytes(buf, len);
 }

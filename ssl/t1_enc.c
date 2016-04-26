@@ -149,6 +149,9 @@
 
 #include "internal.h"
 
+#ifdef CLIVER
+#include "../crypto/bio/KTest.h"
+#endif
 
 /* tls1_P_hash computes the TLS P_<hash> function as described in RFC 5246,
  * section 5. It XORs |out_len| bytes to |out|, using |md| as the hash and
@@ -514,7 +517,9 @@ int tls1_generate_master_secret(SSL *ssl, uint8_t *out,
       return 0;
     }
   }
-
+#ifdef CLIVER
+  ktest_master_secret(ssl->session->master_key, SSL3_MASTER_SECRET_SIZE);
+#endif
   return SSL3_MASTER_SECRET_SIZE;
 }
 

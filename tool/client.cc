@@ -15,6 +15,7 @@
 #include <openssl/base.h>
 
 #include <stdio.h>
+#include <iostream>
 
 #include <openssl/err.h>
 #include <openssl/pem.h>
@@ -25,7 +26,12 @@
 #include "internal.h"
 #include "transport_common.h"
 
+
+#ifdef CLIVER
 #include "../crypto/bio/KTest.h"
+static const char *arg_ktest_filename = NULL;
+static enum kTestMode arg_ktest_mode = KTEST_NONE;
+#endif
 
 static const struct argument kArguments[] = {
     {
@@ -82,6 +88,14 @@ static const struct argument kArguments[] = {
     { "-session-out", kOptionalArgument,
       "A file to write the negotiated session to.",
     },
+#ifdef CLIVER
+    { "-record" , kOptionalArgument,
+      "File to record packets and other inputs.",
+    },
+    { "-playback" , kOptionalArgument,
+      "Playback client using inputs KTest file.",
+    },
+#endif
     {
       "-key", kOptionalArgument,
       "Private-key file to use (default is no client certificate)",
@@ -156,6 +170,20 @@ bool Client(const std::vector<std::string> &args) {
     }
     SSL_CTX_set_keylog_callback(ctx.get(), KeyLogCallback);
   }
+
+#ifdef CLIVER
+  if (args_map.count("-record") != 0){
+      arg_ktest_filename = args_map["-record"].c_str();
+      arg_ktest_mode = KTEST_RECORD;
+  }
+  else if(args_map.count("-playback") != 0){
+      arg_ktest_filename = args_map["-playback"].c_str();
+      arg_ktest_mode = KTEST_PLAYBACK;
+  }
+  ktest_start(arg_ktest_filename, arg_ktest_mode);
+#endif
+
+
 
   if (args_map.count("-cipher") != 0 &&
       !SSL_CTX_set_cipher_list(ctx.get(), args_map["-cipher"].c_str())) {
@@ -282,6 +310,7 @@ bool Client(const std::vector<std::string> &args) {
     SSL_set_session(ssl.get(), session.get());
   }
 
+
   SSL_set_bio(ssl.get(), bio.get(), bio.get());
   bio.release();
 
@@ -308,5 +337,8 @@ bool Client(const std::vector<std::string> &args) {
 
   bool ok = TransferData(ssl.get(), sock);
 
+#ifdef CLIVER
+  ktest_finish();
   return ok;
+#endif
 }

@@ -43,7 +43,11 @@ extern "C" {
     KTestObject *objects;
   };
 
-  
+
+#include <netdb.h>
+  int kTest_getaddrinfo(const char *node, const char *service,
+                       const struct addrinfo *hints, struct addrinfo **res);
+
   /* returns the current .ktest file format version */
   unsigned kTest_getCurrentVersion();
   

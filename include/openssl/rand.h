@@ -16,6 +16,7 @@
 #define OPENSSL_HEADER_RAND_H
 
 #include <openssl/base.h>
+#include <openssl/ssl.h>
 
 #if defined(__cplusplus)
 extern "C" {
@@ -107,6 +108,15 @@ OPENSSL_EXPORT RAND_METHOD *RAND_SSLeay(void);
 
 /* RAND_set_rand_method does nothing. */
 OPENSSL_EXPORT void RAND_set_rand_method(const RAND_METHOD *);
+
+
+#ifdef CLIVER
+#include "../../crypto/bio/KTest.h"
+#define RAND_bytes ktest_RAND_bytes
+#define RAND_pseudo_bytes ktest_RAND_pseudo_bytes
+#endif
+
+
 
 
 #if defined(__cplusplus)

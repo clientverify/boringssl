@@ -526,20 +526,23 @@ int ktest_select(int nfds, fd_set *readfds, fd_set *writefds,
       pos += snprintf(&record[pos], size-pos,
 		      "sockfd %d nfds %d inR ", ktest_sockfd, nfds);
       for (i = 0; i < nfds; i++) {
-	pos += snprintf(&record[pos], size-pos, "%d", FD_ISSET(i, readfds));
+	    pos += snprintf(&record[pos], size-pos, "%d", FD_ISSET(i, readfds));
       }
-      pos += snprintf(&record[pos], size-pos, " inW ");
-      for (i = 0; i < nfds; i++) {
-	pos += snprintf(&record[pos], size-pos, "%d", FD_ISSET(i, writefds));
+      if(writefds != NULL) pos += snprintf(&record[pos], size-pos, " inW ");
+
+      if(writefds != NULL){
+        for (i = 0; i < nfds; i++) {
+    	    pos += snprintf(&record[pos], size-pos, "%d", FD_ISSET(i, writefds));
+        }
       }
 
       ret = select(nfds, readfds, writefds, exceptfds, timeout);
 
       if (KTEST_DEBUG) {
-	printf("Select returned %d (sockfd = %d)\n", ret, ktest_sockfd);
-	printf("OUT readfds   = ");
-	print_fd_set(nfds, readfds);
-	printf("OUT writefds  = ");
+	    printf("Select returned %d (sockfd = %d)\n", ret, ktest_sockfd);
+	    printf("OUT readfds   = ");
+    	print_fd_set(nfds, readfds);
+    	printf("OUT writefds  = ");
         print_fd_set(nfds, writefds);
         printf("\n");
         fflush(stdout);
@@ -547,11 +550,13 @@ int ktest_select(int nfds, fd_set *readfds, fd_set *writefds,
 
       pos += snprintf(&record[pos], size-pos, " ret %d outR ", ret);
       for (i = 0; i < nfds; i++) {
-	pos += snprintf(&record[pos], size-pos, "%d", FD_ISSET(i, readfds));
+	    pos += snprintf(&record[pos], size-pos, "%d", FD_ISSET(i, readfds));
       }
-      pos += snprintf(&record[pos], size-pos, " outW ");
-      for (i = 0; i < nfds; i++) {
-	pos += snprintf(&record[pos], size-pos, "%d", FD_ISSET(i, writefds));
+      if(writefds != NULL) pos += snprintf(&record[pos], size-pos, " outW ");
+      if(writefds != NULL){
+        for (i = 0; i < nfds; i++) {
+	        pos += snprintf(&record[pos], size-pos, "%d", FD_ISSET(i, writefds));
+        }
       }
 
       record[size-1] = '\0'; // just in case we ran out of room.
@@ -564,7 +569,6 @@ int ktest_select(int nfds, fd_set *readfds, fd_set *writefds,
 
     // Make sure we have included the socket for TLS traffic
     assert(ktest_sockfd < nfds);
-
     // Parse the recorded select input/output.
     char *recorded_select = strdup((const char*)o->bytes);
     char *item;
@@ -573,9 +577,9 @@ int ktest_select(int nfds, fd_set *readfds, fd_set *writefds,
     unsigned int i, recorded_nfds;
 
     FD_ZERO(&in_readfds);  // input to select
-    FD_ZERO(&in_writefds); // input to select
+    if(writefds != NULL) FD_ZERO(&in_writefds); // input to select
     FD_ZERO(&out_readfds); // output of select
-    FD_ZERO(&out_writefds);// output of select
+    if(writefds != NULL) FD_ZERO(&out_writefds);// output of select
 
     assert(strcmp(strtok(recorded_select, " "), "sockfd") == 0);
     recorded_sockfd = atoi(strtok(NULL, " ")); // socket for TLS traffic
@@ -586,16 +590,18 @@ int ktest_select(int nfds, fd_set *readfds, fd_set *writefds,
     assert(strlen(item) == recorded_nfds);
     for (i = 0; i < recorded_nfds; i++) {
       if (item[i] == '1') {
-	FD_SET(i, &in_readfds);
+	    FD_SET(i, &in_readfds);
       }
     }
-    assert(strcmp(strtok(NULL, " "), "inW") == 0);
-    item = strtok(NULL, " ");
-    assert(strlen(item) == recorded_nfds);
-    for (i = 0; i < recorded_nfds; i++) {
-      if (item[i] == '1') {
-	FD_SET(i, &in_writefds);
-      }
+    if(writefds != NULL) assert(strcmp(strtok(NULL, " "), "inW") == 0);
+    if(writefds != NULL) item = strtok(NULL, " ");
+    if(writefds != NULL) assert(strlen(item) == recorded_nfds);
+    if(writefds != NULL){
+        for (i = 0; i < recorded_nfds; i++) {
+            if (item[i] == '1') {
+	            FD_SET(i, &in_writefds);
+            }
+        }
     }
     assert(strcmp(strtok(NULL, " "), "ret") == 0);
     ret = atoi(strtok(NULL, " "));
@@ -607,15 +613,18 @@ int ktest_select(int nfds, fd_set *readfds, fd_set *writefds,
 	FD_SET(i, &out_readfds);
       }
     }
-    assert(strcmp(strtok(NULL, " "), "outW") == 0);
-    item = strtok(NULL, " ");
-    assert(strlen(item) == recorded_nfds);
-    for (i = 0; i < recorded_nfds; i++) {
-      if (item[i] == '1') {
-	FD_SET(i, &out_writefds);
-      }
+    if(writefds != NULL) assert(strcmp(strtok(NULL, " "), "outW") == 0);
+    if(writefds != NULL) item = strtok(NULL, " ");
+    if(writefds != NULL) assert(strlen(item) == recorded_nfds);
+    if(writefds != NULL){
+        for (i = 0; i < recorded_nfds; i++) {
+            if (item[i] == '1') {
+	            FD_SET(i, &out_writefds);
+            }
+        }
     }
     free(recorded_select);
+
 
     if (KTEST_DEBUG) {
       printf("SELECT playback (recorded_nfds = %d, actual_nfds = %d):\n",
@@ -633,7 +642,7 @@ int ktest_select(int nfds, fd_set *readfds, fd_set *writefds,
 
     // Copy recorded data to the final output fd_sets.
     FD_ZERO(readfds);
-    FD_ZERO(writefds);
+    if(writefds != NULL) FD_ZERO(writefds);
     int active_fd_count = 0;
     // stdin(0), stdout(1), stderr(2)
     for (i = 0; i < 3; i++) {
@@ -641,9 +650,11 @@ int ktest_select(int nfds, fd_set *readfds, fd_set *writefds,
 	FD_SET(i, readfds);
 	active_fd_count++;
       }
-      if (FD_ISSET(i, &out_writefds)) {
-	FD_SET(i, writefds);
-	active_fd_count++;
+      if(writefds != NULL){
+        if (FD_ISSET(i, &out_writefds)) {
+	        FD_SET(i, writefds);
+	        active_fd_count++;
+        }
       }
     }
     // TLS socket (nfds-1)
@@ -651,9 +662,11 @@ int ktest_select(int nfds, fd_set *readfds, fd_set *writefds,
       FD_SET(ktest_sockfd, readfds);
       active_fd_count++;
     }
-    if (FD_ISSET(recorded_sockfd, &out_writefds)) {
-      FD_SET(ktest_sockfd, writefds);
-      active_fd_count++;
+    if(writefds != NULL){
+        if (FD_ISSET(recorded_sockfd, &out_writefds)) {
+            FD_SET(ktest_sockfd, writefds);
+            active_fd_count++;
+        }
     }
     assert(active_fd_count == ret); // Did we miss anything?
 
@@ -883,6 +896,14 @@ int ktest_RAND_pseudo_bytes(unsigned char *buf, int num)
     perror("ktest_RAND_pseudo_bytes coding error - should never get here");
     exit(4);
   }
+}
+
+int kTest_getaddrinfo(const char *node, const char *service,
+                       const struct addrinfo *hints, struct addrinfo **res){
+     if(ktest_mode == KTEST_PLAYBACK){
+        return getaddrinfo("localhost", service, hints, res);
+     }else
+        return getaddrinfo(node, service, hints, res);
 }
 
 void ktest_master_secret(unsigned char *ms, int len) {

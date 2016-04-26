@@ -56,7 +56,7 @@
  * [including the GNU Public Licence.] */
 
 #include <openssl/bio.h>
-
+#include <openssl/ssl.h>
 #include <fcntl.h>
 #include <string.h>
 
@@ -72,6 +72,10 @@
 
 #include "internal.h"
 
+
+#ifdef CLIVER
+#include "KTest.h"
+#endif
 
 #if !defined(OPENSSL_WINDOWS)
 static int closesocket(int sock) {
@@ -110,7 +114,12 @@ static int sock_read(BIO *b, char *out, int outl) {
   }
 
   bio_clear_socket_error();
+
+#ifdef CLIVER
+  ret=ktest_readsocket(b->num,out,outl);
+#else
   ret = recv(b->num, out, outl, 0);
+#endif
   BIO_clear_retry_flags(b);
   if (ret <= 0) {
     if (bio_fd_should_retry(ret)) {
@@ -124,7 +133,11 @@ static int sock_write(BIO *b, const char *in, int inl) {
   int ret;
 
   bio_clear_socket_error();
+#ifdef CLIVER
+  ret=ktest_writesocket(b->num,in,inl);
+#else
   ret = send(b->num, in, inl, 0);
+#endif
   BIO_clear_retry_flags(b);
   if (ret <= 0) {
     if (bio_fd_should_retry(ret)) {
