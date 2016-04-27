@@ -1384,14 +1384,14 @@ ssl_create_cipher_list(const SSL_PROTOCOL_METHOD *ssl_method,
   unsigned int num_in_group_flags = 0;
   struct ssl_cipher_preference_list_st *pref_list = NULL;
 
-  /* Return with error if nothing to do. */
+  // Return with error if nothing to do.
   if (rule_str == NULL || out_cipher_list == NULL) {
     return NULL;
   }
 
-  /* Now we have to collect the available ciphers from the compiled in ciphers.
-   * We cannot get more than the number compiled in, so it is used for
-   * allocation. */
+  // Now we have to collect the available ciphers from the compiled in ciphers.
+  // We cannot get more than the number compiled in, so it is used for
+  // allocation.
   co_list = OPENSSL_malloc(sizeof(CIPHER_ORDER) * kCiphersLen);
   if (co_list == NULL) {
     OPENSSL_PUT_ERROR(SSL, ERR_R_MALLOC_FAILURE);
@@ -1400,11 +1400,11 @@ ssl_create_cipher_list(const SSL_PROTOCOL_METHOD *ssl_method,
 
   ssl_cipher_collect_ciphers(ssl_method, co_list, &head, &tail);
 
-  /* Now arrange all ciphers by preference:
-   * TODO(davidben): Compute this order once and copy it. */
+  // Now arrange all ciphers by preference:
+  // TODO(davidben): Compute this order once and copy it.
 
-  /* Everything else being equal, prefer ECDHE_ECDSA then ECDHE_RSA over other
-   * key exchange mechanisms */
+  // Everything else being equal, prefer ECDHE_ECDSA then ECDHE_RSA over other
+  // key exchange mechanisms
   ssl_cipher_apply_rule(0, SSL_kECDHE, SSL_aECDSA, ~0u, ~0u, 0, CIPHER_ADD, -1,
                         0, &head, &tail);
   ssl_cipher_apply_rule(0, SSL_kECDHE, ~0u, ~0u, ~0u, 0, CIPHER_ADD, -1, 0,
@@ -1412,10 +1412,10 @@ ssl_create_cipher_list(const SSL_PROTOCOL_METHOD *ssl_method,
   ssl_cipher_apply_rule(0, SSL_kECDHE, ~0u, ~0u, ~0u, 0, CIPHER_DEL, -1, 0,
                         &head, &tail);
 
-  /* Order the bulk ciphers. First the preferred AEAD ciphers. We prefer
-   * CHACHA20 unless there is hardware support for fast and constant-time
-   * AES_GCM. Of the two CHACHA20 variants, the new one is preferred over the
-   * old one. */
+  // Order the bulk ciphers. First the preferred AEAD ciphers. We prefer
+  // CHACHA20 unless there is hardware support for fast and constant-time
+  // AES_GCM. Of the two CHACHA20 variants, the new one is preferred over the
+  // old one.
   if (EVP_has_aes_hardware()) {
     ssl_cipher_apply_rule(0, ~0u, ~0u, SSL_AES256GCM, ~0u, 0, CIPHER_ADD, -1, 0,
                           &head, &tail);
@@ -1436,8 +1436,8 @@ ssl_create_cipher_list(const SSL_PROTOCOL_METHOD *ssl_method,
                           &head, &tail);
   }
 
-  /* Then the legacy non-AEAD ciphers: AES_256_CBC, AES-128_CBC, RC4_128_SHA,
-   * RC4_128_MD5, 3DES_EDE_CBC_SHA. */
+  // Then the legacy non-AEAD ciphers: AES_256_CBC, AES-128_CBC, RC4_128_SHA,
+  // RC4_128_MD5, 3DES_EDE_CBC_SHA.
   ssl_cipher_apply_rule(0, ~0u, ~0u, SSL_AES256, ~0u, 0, CIPHER_ADD, -1, 0,
                         &head, &tail);
   ssl_cipher_apply_rule(0, ~0u, ~0u, SSL_AES128, ~0u, 0, CIPHER_ADD, -1, 0,
@@ -1449,20 +1449,20 @@ ssl_create_cipher_list(const SSL_PROTOCOL_METHOD *ssl_method,
   ssl_cipher_apply_rule(0, ~0u, ~0u, SSL_3DES, ~0u, 0, CIPHER_ADD, -1, 0, &head,
                         &tail);
 
-  /* Temporarily enable everything else for sorting */
+  // Temporarily enable everything else for sorting
   ssl_cipher_apply_rule(0, ~0u, ~0u, ~0u, ~0u, 0, CIPHER_ADD, -1, 0, &head,
                         &tail);
 
-  /* Move ciphers without forward secrecy to the end. */
+  // Move ciphers without forward secrecy to the end.
   ssl_cipher_apply_rule(0, ~(SSL_kDHE | SSL_kECDHE), ~0u, ~0u, ~0u, 0,
                         CIPHER_ORD, -1, 0, &head, &tail);
 
-  /* Now disable everything (maintaining the ordering!) */
+  // Now disable everything (maintaining the ordering!)
   ssl_cipher_apply_rule(0, ~0u, ~0u, ~0u, ~0u, 0, CIPHER_DEL, -1, 0, &head,
                         &tail);
 
-  /* If the rule_string begins with DEFAULT, apply the default rule before
-   * using the (possibly available) additional rules. */
+  // If the rule_string begins with DEFAULT, apply the default rule before
+  // using the (possibly available) additional rules.
   ok = 1;
   rule_p = rule_str;
   if (strncmp(rule_str, "DEFAULT", 7) == 0) {
@@ -1482,8 +1482,8 @@ ssl_create_cipher_list(const SSL_PROTOCOL_METHOD *ssl_method,
     goto err;
   }
 
-  /* Allocate new "cipherstack" for the result, return with error
-   * if we cannot get one. */
+  // Allocate new "cipherstack" for the result, return with error
+  // if we cannot get one.
   cipherstack = sk_SSL_CIPHER_new_null();
   if (cipherstack == NULL) {
     goto err;
@@ -1494,8 +1494,8 @@ ssl_create_cipher_list(const SSL_PROTOCOL_METHOD *ssl_method,
     goto err;
   }
 
-  /* The cipher selection for the list is done. The ciphers are added
-   * to the resulting precedence to the STACK_OF(SSL_CIPHER). */
+  // The cipher selection for the list is done. The ciphers are added
+  // to the resulting precedence to the STACK_OF(SSL_CIPHER).
   for (curr = head; curr != NULL; curr = curr->next) {
     if (curr->active) {
       if (!sk_SSL_CIPHER_push(cipherstack, curr->cipher)) {
@@ -1504,7 +1504,7 @@ ssl_create_cipher_list(const SSL_PROTOCOL_METHOD *ssl_method,
       in_group_flags[num_in_group_flags++] = curr->in_group;
     }
   }
-  OPENSSL_free(co_list); /* Not needed any longer */
+  OPENSSL_free(co_list); // Not needed any longer
   co_list = NULL;
 
   tmp_cipher_list = sk_SSL_CIPHER_dup(cipherstack);
