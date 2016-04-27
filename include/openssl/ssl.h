@@ -139,8 +139,6 @@
  * OTHERWISE.
  */
 
-#define CLIVER
-
 #ifndef OPENSSL_HEADER_SSL_H
 #define OPENSSL_HEADER_SSL_H
 
