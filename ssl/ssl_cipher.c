@@ -252,7 +252,7 @@ static const SSL_CIPHER kCiphers[] = {
     /* TLS v1.2 ciphersuites */
 
     /* Cipher 3C */
-    {
+    /*{
      TLS1_TXT_RSA_WITH_AES_128_SHA256,
      TLS1_CK_RSA_WITH_AES_128_SHA256,
      SSL_kRSA,
@@ -260,10 +260,10 @@ static const SSL_CIPHER kCiphers[] = {
      SSL_AES128,
      SSL_SHA256,
      SSL_HANDSHAKE_MAC_SHA256,
-    },
+    },*/
 
     /* Cipher 3D */
-    {
+    /*{
      TLS1_TXT_RSA_WITH_AES_256_SHA256,
      TLS1_CK_RSA_WITH_AES_256_SHA256,
      SSL_kRSA,
@@ -271,7 +271,7 @@ static const SSL_CIPHER kCiphers[] = {
      SSL_AES256,
      SSL_SHA256,
      SSL_HANDSHAKE_MAC_SHA256,
-    },
+    },*/
 
     /* Cipher 67 */
     {
@@ -446,7 +446,7 @@ static const SSL_CIPHER kCiphers[] = {
     /* HMAC based TLS v1.2 ciphersuites from RFC5289 */
 
     /* Cipher C023 */
-    {
+   /* {
      TLS1_TXT_ECDHE_ECDSA_WITH_AES_128_SHA256,
      TLS1_CK_ECDHE_ECDSA_WITH_AES_128_SHA256,
      SSL_kECDHE,
@@ -454,10 +454,10 @@ static const SSL_CIPHER kCiphers[] = {
      SSL_AES128,
      SSL_SHA256,
      SSL_HANDSHAKE_MAC_SHA256,
-    },
+    },*/
 
     /* Cipher C024 */
-    {
+    /*{
      TLS1_TXT_ECDHE_ECDSA_WITH_AES_256_SHA384,
      TLS1_CK_ECDHE_ECDSA_WITH_AES_256_SHA384,
      SSL_kECDHE,
@@ -465,10 +465,10 @@ static const SSL_CIPHER kCiphers[] = {
      SSL_AES256,
      SSL_SHA384,
      SSL_HANDSHAKE_MAC_SHA384,
-    },
+    },*/
 
     /* Cipher C027 */
-    {
+   /* {
      TLS1_TXT_ECDHE_RSA_WITH_AES_128_SHA256,
      TLS1_CK_ECDHE_RSA_WITH_AES_128_SHA256,
      SSL_kECDHE,
@@ -476,10 +476,10 @@ static const SSL_CIPHER kCiphers[] = {
      SSL_AES128,
      SSL_SHA256,
      SSL_HANDSHAKE_MAC_SHA256,
-    },
+    },*/
 
     /* Cipher C028 */
-    {
+   /* {
      TLS1_TXT_ECDHE_RSA_WITH_AES_256_SHA384,
      TLS1_CK_ECDHE_RSA_WITH_AES_256_SHA384,
      SSL_kECDHE,
@@ -487,7 +487,7 @@ static const SSL_CIPHER kCiphers[] = {
      SSL_AES256,
      SSL_SHA384,
      SSL_HANDSHAKE_MAC_SHA384,
-    },
+    },*/
 
 
     /* GCM based TLS v1.2 ciphersuites from RFC5289 */
@@ -1417,9 +1417,9 @@ ssl_create_cipher_list(const SSL_PROTOCOL_METHOD *ssl_method,
   // AES_GCM. Of the two CHACHA20 variants, the new one is preferred over the
   // old one.
   if (EVP_has_aes_hardware()) {
-    ssl_cipher_apply_rule(0, ~0u, ~0u, SSL_AES256GCM, ~0u, 0, CIPHER_ADD, -1, 0,
-                          &head, &tail);
     ssl_cipher_apply_rule(0, ~0u, ~0u, SSL_AES128GCM, ~0u, 0, CIPHER_ADD, -1, 0,
+                          &head, &tail);
+    ssl_cipher_apply_rule(0, ~0u, ~0u, SSL_AES256GCM, ~0u, 0, CIPHER_ADD, -1, 0,
                           &head, &tail);
     ssl_cipher_apply_rule(0, ~0u, ~0u, SSL_CHACHA20POLY1305, ~0u, 0, CIPHER_ADD,
                           -1, 0, &head, &tail);
@@ -1430,17 +1430,17 @@ ssl_create_cipher_list(const SSL_PROTOCOL_METHOD *ssl_method,
                           -1, 0, &head, &tail);
     ssl_cipher_apply_rule(0, ~0u, ~0u, SSL_CHACHA20POLY1305_OLD, ~0u, 0,
                           CIPHER_ADD, -1, 0, &head, &tail);
-    ssl_cipher_apply_rule(0, ~0u, ~0u, SSL_AES256GCM, ~0u, 0, CIPHER_ADD, -1, 0,
-                          &head, &tail);
     ssl_cipher_apply_rule(0, ~0u, ~0u, SSL_AES128GCM, ~0u, 0, CIPHER_ADD, -1, 0,
+                          &head, &tail);
+    ssl_cipher_apply_rule(0, ~0u, ~0u, SSL_AES256GCM, ~0u, 0, CIPHER_ADD, -1, 0,
                           &head, &tail);
   }
 
   // Then the legacy non-AEAD ciphers: AES_256_CBC, AES-128_CBC, RC4_128_SHA,
   // RC4_128_MD5, 3DES_EDE_CBC_SHA.
-  ssl_cipher_apply_rule(0, ~0u, ~0u, SSL_AES256, ~0u, 0, CIPHER_ADD, -1, 0,
-                        &head, &tail);
   ssl_cipher_apply_rule(0, ~0u, ~0u, SSL_AES128, ~0u, 0, CIPHER_ADD, -1, 0,
+                        &head, &tail);
+  ssl_cipher_apply_rule(0, ~0u, ~0u, SSL_AES256, ~0u, 0, CIPHER_ADD, -1, 0,
                         &head, &tail);
   ssl_cipher_apply_rule(0, ~0u, ~0u, SSL_RC4, ~SSL_MD5, 0, CIPHER_ADD, -1, 0,
                         &head, &tail);
