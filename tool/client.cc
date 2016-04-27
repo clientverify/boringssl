@@ -339,6 +339,6 @@ bool Client(const std::vector<std::string> &args) {
 
 #ifdef CLIVER
   ktest_finish();
-  return ok;
 #endif
+  return ok;
 }
