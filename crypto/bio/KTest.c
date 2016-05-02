@@ -485,6 +485,146 @@ int ktest_connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen)
   }
 }
 
+int ktest_select_read_only(int nfds, fd_set *readfds, fd_set *dummy_writefds,
+          fd_set *dummy_exceptfds, struct timeval *timeout);
+/**
+ * This deals only with readfds.  writefds and exceptfds MUST be null.
+ * This function is meant to be internal
+ */
+int ktest_select_read_only(int nfds, fd_set *readfds, fd_set *dummy_writefds,
+		  fd_set *dummy_exceptfds, struct timeval *timeout)
+{
+  if (ktest_mode == KTEST_NONE) { // passthrough
+      return select(nfds, readfds, dummy_writefds, dummy_exceptfds, timeout);
+  }
+  else if (ktest_mode == KTEST_RECORD) {
+      // select input/output is stored as ASCII text in the format:
+      // "sockfd 3 nfds 4 inR 1001 inW 0000 ret 1 outR 1000 outW 0000"
+      //    sockfd - just for reference, not part of the select call
+      //    nfds - number of active fds in fdset, usually sockfd+1
+      //    inR - readfds input value
+      //    ret - return value from select()
+      //    outR - readfds output value
+
+      int ret, i;
+      unsigned int size = 4*nfds + 40 /*text*/ + 3*4 /*3 fd's*/ + 1 /*null*/;
+      char *record = (char *)calloc(size, sizeof(char));
+      unsigned int pos = 0;
+
+      if (KTEST_DEBUG) {
+        printf("\n");
+        printf("IN readfds  = ");
+        print_fd_set(nfds, readfds);
+        fflush(stdout);
+      }
+
+      pos += snprintf(&record[pos], size-pos,
+		      "sockfd %d nfds %d inR ", ktest_sockfd, nfds);
+      for (i = 0; i < nfds; i++) {
+	    pos += snprintf(&record[pos], size-pos, "%d", FD_ISSET(i, readfds));
+      }
+
+      ret = select(nfds, readfds, dummy_writefds, dummy_exceptfds, timeout);
+
+      if (KTEST_DEBUG) {
+	    printf("Select returned %d (sockfd = %d)\n", ret, ktest_sockfd);
+	    printf("OUT readfds   = ");
+    	print_fd_set(nfds, readfds);
+        printf("\n");
+        fflush(stdout);
+      }
+
+      pos += snprintf(&record[pos], size-pos, " ret %d outR ", ret);
+      for (i = 0; i < nfds; i++) {
+	    pos += snprintf(&record[pos], size-pos, "%d", FD_ISSET(i, readfds));
+      }
+
+      record[size-1] = '\0'; // just in case we ran out of room.
+      KTOV_append(&ktov, ktest_object_names[SELECT], strlen(record)+1, record);
+      free(record);
+      return ret;
+  }
+  else if (ktest_mode == KTEST_PLAYBACK) {
+    KTestObject *o = KTOV_next_object(&ktov, ktest_object_names[SELECT]);
+
+    // Make sure we have included the socket for TLS traffic
+    assert(ktest_sockfd < nfds);
+    // Parse the recorded select input/output.
+    char *recorded_select = strdup((const char*)o->bytes);
+    char *item, *tmp;
+    fd_set in_readfds, out_readfds;
+    int ret, recorded_sockfd;
+    unsigned int i, recorded_nfds;
+
+    FD_ZERO(&in_readfds);  // input to select
+    FD_ZERO(&out_readfds); // output of select
+
+    //XXX: this is quite odd, when I seperate this out into a tmp, then it works
+    //ow segfaults.
+    tmp = strtok(recorded_select, " ");
+    assert(strcmp(tmp, "sockfd") == 0);
+
+    recorded_sockfd = atoi(strtok(NULL, " ")); // socket for TLS traffic
+    assert(strcmp(strtok(NULL, " "), "nfds") == 0);
+    recorded_nfds = atoi(strtok(NULL, " "));
+    assert(strcmp(strtok(NULL, " "), "inR") == 0);
+    item = strtok(NULL, " ");
+    assert(strlen(item) == recorded_nfds);
+    for (i = 0; i < recorded_nfds; i++) {
+      if (item[i] == '1') {
+	    FD_SET(i, &in_readfds);
+      }
+    }
+    assert(strcmp(strtok(NULL, " "), "ret") == 0);
+    ret = atoi(strtok(NULL, " "));
+    assert(strcmp(strtok(NULL, " "), "outR") == 0);
+    item = strtok(NULL, " ");
+    assert(strlen(item) == recorded_nfds);
+    for (i = 0; i < recorded_nfds; i++) {
+      if (item[i] == '1') {
+	    FD_SET(i, &out_readfds);
+      }
+    }
+    free(recorded_select);
+
+
+    if (KTEST_DEBUG) {
+      printf("SELECT playback (recorded_nfds = %d, actual_nfds = %d):\n",
+	     recorded_nfds, nfds);
+      printf("  inR: ");
+      print_fd_set(recorded_nfds, &in_readfds);
+      printf("  outR:");
+      print_fd_set(recorded_nfds, &out_readfds);
+      printf("  ret = %d\n", ret);
+    }
+
+    // Copy recorded data to the final output fd_sets.
+    FD_ZERO(readfds);
+    int active_fd_count = 0;
+    // stdin(0), stdout(1), stderr(2)
+    for (i = 0; i < 3; i++) {
+      if (FD_ISSET(i, &out_readfds)) {
+	      FD_SET(i, readfds);
+	      active_fd_count++;
+      }
+    }
+    // TLS socket (nfds-1)
+    if (FD_ISSET(recorded_sockfd, &out_readfds)) {
+      FD_SET(ktest_sockfd, readfds);
+      active_fd_count++;
+    }
+    assert(active_fd_count == ret); // Did we miss anything?
+
+    return ret;
+  }
+  else {
+      perror("ktest_select error - should never get here");
+      exit(4);
+  }
+}
+
+
+
 /**
  * Note that ktest_select playback is slightly brittle in that it
  * assumes that the only socket descriptors we care about are
@@ -497,8 +637,9 @@ int ktest_select(int nfds, fd_set *readfds, fd_set *writefds,
 {
   if (ktest_mode == KTEST_NONE) { // passthrough
       return select(nfds, readfds, writefds, exceptfds, timeout);
-  }
-  else if (ktest_mode == KTEST_RECORD) {
+  } else if (writefds == NULL){
+    return ktest_select_read_only(nfds, readfds, writefds, exceptfds, timeout);
+  } else if (ktest_mode == KTEST_RECORD) {
       // select input/output is stored as ASCII text in the format:
       // "sockfd 3 nfds 4 inR 1001 inW 0000 ret 1 outR 1000 outW 0000"
       //    sockfd - just for reference, not part of the select call
@@ -528,12 +669,10 @@ int ktest_select(int nfds, fd_set *readfds, fd_set *writefds,
       for (i = 0; i < nfds; i++) {
 	    pos += snprintf(&record[pos], size-pos, "%d", FD_ISSET(i, readfds));
       }
-      if(writefds != NULL) pos += snprintf(&record[pos], size-pos, " inW ");
+      pos += snprintf(&record[pos], size-pos, " inW ");
 
-      if(writefds != NULL){
-        for (i = 0; i < nfds; i++) {
-    	    pos += snprintf(&record[pos], size-pos, "%d", FD_ISSET(i, writefds));
-        }
+      for (i = 0; i < nfds; i++) {
+  	    pos += snprintf(&record[pos], size-pos, "%d", FD_ISSET(i, writefds));
       }
 
       ret = select(nfds, readfds, writefds, exceptfds, timeout);
@@ -552,11 +691,9 @@ int ktest_select(int nfds, fd_set *readfds, fd_set *writefds,
       for (i = 0; i < nfds; i++) {
 	    pos += snprintf(&record[pos], size-pos, "%d", FD_ISSET(i, readfds));
       }
-      if(writefds != NULL) pos += snprintf(&record[pos], size-pos, " outW ");
-      if(writefds != NULL){
-        for (i = 0; i < nfds; i++) {
-	        pos += snprintf(&record[pos], size-pos, "%d", FD_ISSET(i, writefds));
-        }
+      pos += snprintf(&record[pos], size-pos, " outW ");
+      for (i = 0; i < nfds; i++) {
+        pos += snprintf(&record[pos], size-pos, "%d", FD_ISSET(i, writefds));
       }
 
       record[size-1] = '\0'; // just in case we ran out of room.
@@ -577,9 +714,9 @@ int ktest_select(int nfds, fd_set *readfds, fd_set *writefds,
     unsigned int i, recorded_nfds;
 
     FD_ZERO(&in_readfds);  // input to select
-    if(writefds != NULL) FD_ZERO(&in_writefds); // input to select
+    FD_ZERO(&in_writefds); // input to select
     FD_ZERO(&out_readfds); // output of select
-    if(writefds != NULL) FD_ZERO(&out_writefds);// output of select
+    FD_ZERO(&out_writefds);// output of select
 
     assert(strcmp(strtok(recorded_select, " "), "sockfd") == 0);
     recorded_sockfd = atoi(strtok(NULL, " ")); // socket for TLS traffic
@@ -593,14 +730,12 @@ int ktest_select(int nfds, fd_set *readfds, fd_set *writefds,
 	    FD_SET(i, &in_readfds);
       }
     }
-    if(writefds != NULL) assert(strcmp(strtok(NULL, " "), "inW") == 0);
-    if(writefds != NULL) item = strtok(NULL, " ");
-    if(writefds != NULL) assert(strlen(item) == recorded_nfds);
-    if(writefds != NULL){
-        for (i = 0; i < recorded_nfds; i++) {
-            if (item[i] == '1') {
-	            FD_SET(i, &in_writefds);
-            }
+    assert(strcmp(strtok(NULL, " "), "inW") == 0);
+    item = strtok(NULL, " ");
+    assert(strlen(item) == recorded_nfds);
+    for (i = 0; i < recorded_nfds; i++) {
+        if (item[i] == '1') {
+	        FD_SET(i, &in_writefds);
         }
     }
     assert(strcmp(strtok(NULL, " "), "ret") == 0);
@@ -610,17 +745,15 @@ int ktest_select(int nfds, fd_set *readfds, fd_set *writefds,
     assert(strlen(item) == recorded_nfds);
     for (i = 0; i < recorded_nfds; i++) {
       if (item[i] == '1') {
-	FD_SET(i, &out_readfds);
+	    FD_SET(i, &out_readfds);
       }
     }
-    if(writefds != NULL) assert(strcmp(strtok(NULL, " "), "outW") == 0);
-    if(writefds != NULL) item = strtok(NULL, " ");
-    if(writefds != NULL) assert(strlen(item) == recorded_nfds);
-    if(writefds != NULL){
-        for (i = 0; i < recorded_nfds; i++) {
-            if (item[i] == '1') {
-	            FD_SET(i, &out_writefds);
-            }
+    assert(strcmp(strtok(NULL, " "), "outW") == 0);
+    item = strtok(NULL, " ");
+    assert(strlen(item) == recorded_nfds);
+    for (i = 0; i < recorded_nfds; i++) {
+        if (item[i] == '1') {
+	        FD_SET(i, &out_writefds);
         }
     }
     free(recorded_select);
@@ -642,19 +775,17 @@ int ktest_select(int nfds, fd_set *readfds, fd_set *writefds,
 
     // Copy recorded data to the final output fd_sets.
     FD_ZERO(readfds);
-    if(writefds != NULL) FD_ZERO(writefds);
+    FD_ZERO(writefds);
     int active_fd_count = 0;
     // stdin(0), stdout(1), stderr(2)
     for (i = 0; i < 3; i++) {
       if (FD_ISSET(i, &out_readfds)) {
-	FD_SET(i, readfds);
-	active_fd_count++;
+	      FD_SET(i, readfds);
+	      active_fd_count++;
       }
-      if(writefds != NULL){
-        if (FD_ISSET(i, &out_writefds)) {
-	        FD_SET(i, writefds);
-	        active_fd_count++;
-        }
+      if (FD_ISSET(i, &out_writefds)) {
+	      FD_SET(i, writefds);
+	      active_fd_count++;
       }
     }
     // TLS socket (nfds-1)
@@ -662,11 +793,9 @@ int ktest_select(int nfds, fd_set *readfds, fd_set *writefds,
       FD_SET(ktest_sockfd, readfds);
       active_fd_count++;
     }
-    if(writefds != NULL){
-        if (FD_ISSET(recorded_sockfd, &out_writefds)) {
-            FD_SET(ktest_sockfd, writefds);
-            active_fd_count++;
-        }
+    if (FD_ISSET(recorded_sockfd, &out_writefds)) {
+      FD_SET(ktest_sockfd, writefds);
+      active_fd_count++;
     }
     assert(active_fd_count == ret); // Did we miss anything?
 

@@ -77,8 +77,6 @@ bool Connect(int *out_sock, const std::string &hostname_and_port) {
   const size_t colon_offset = hostname_and_port.find_last_of(':');
   std::string hostname, port;
 
-  std::cout << "Happy Tuesday, got to connect\n";
-
   if (colon_offset == std::string::npos) {
     hostname = hostname_and_port;
     port = "443";
