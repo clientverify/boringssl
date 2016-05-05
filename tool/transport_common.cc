@@ -240,6 +240,15 @@ int PrintErrorCallback(const char *str, size_t len, void *ctx) {
   return 1;
 }
 
+#ifdef CLIVER
+// override inline assembly version of FD_ZERO from
+// /usr/include/x86_64-linux-gnu/bits/select.h
+#ifdef FD_ZERO
+#undef FD_ZERO
+#endif
+#define FD_ZERO(p)        memset((char *)(p), 0, sizeof(*(p)))
+#endif // CLIVER
+
 bool TransferData(SSL *ssl, int sock) {
   bool stdin_open = true;
 
