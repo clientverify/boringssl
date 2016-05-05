@@ -9,9 +9,9 @@
 //
 //===----------------------------------------------------------------------===//
 
-#include "KTest.h"
-//XXX:Marie removed to make compile #include "e_os.h"
-//I think it was just used for the following 2 defines:
+#include <openssl/KTest.h>
+// The following macros were used by openssl, so while boring does not need them
+// our code relies on them.
 #  define readsocket(s,b,n)       read((s),(b),(n))
 #  define writesocket(s,b,n)      write((s),(b),(n))
 
@@ -496,6 +496,8 @@ int ktest_connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen)
 int ktest_select(int nfds, fd_set *readfds, fd_set *writefds,
 		  fd_set *exceptfds, struct timeval *timeout)
 {
+  assert(readfds != NULL);
+  assert(exceptfds == NULL);
   if (ktest_mode == KTEST_NONE) { // passthrough
       return select(nfds, readfds, writefds, exceptfds, timeout);
   } else if (ktest_mode == KTEST_RECORD) {
@@ -917,14 +919,6 @@ int ktest_RAND_pseudo_bytes(unsigned char *buf, int num)
   }
 }
 
-int kTest_getaddrinfo(const char *node, const char *service,
-                       const struct addrinfo *hints, struct addrinfo **res){
-     if(ktest_mode == KTEST_PLAYBACK){
-        return getaddrinfo("localhost", service, hints, res);
-     }else
-        return getaddrinfo(node, service, hints, res);
-}
-
 void ktest_master_secret(unsigned char *ms, int len) {
   if (ktest_mode == KTEST_NONE) {
     return;
@@ -1059,3 +1053,16 @@ void ktest_finish() {
     // TODO: nothing except maybe cleanup?
   }
 }
+
+
+
+int ktest_getaddrinfo(const char *node, const char *service,
+                       const struct addrinfo *hints, struct addrinfo **res){
+     if(ktest_mode == KTEST_PLAYBACK){
+        return getaddrinfo("localhost", service, hints, res);
+     }else{
+        return getaddrinfo(node, service, hints, res);
+     }
+}
+
+

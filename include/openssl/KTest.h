@@ -14,7 +14,7 @@
 #include <sys/socket.h>
 #include <sys/select.h>
 #include <time.h>
-
+#include <netdb.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -42,11 +42,6 @@ extern "C" {
     unsigned numObjects;
     KTestObject *objects;
   };
-
-
-#include <netdb.h>
-  int kTest_getaddrinfo(const char *node, const char *service,
-                       const struct addrinfo *hints, struct addrinfo **res);
 
   /* returns the current .ktest file format version */
   unsigned kTest_getCurrentVersion();
@@ -90,6 +85,10 @@ extern "C" {
 
   void ktest_start(const char *filename, enum kTestMode mode);
   void ktest_finish();		     // write capture to file
+
+  int ktest_getaddrinfo(const char *node, const char *service,
+                       const struct addrinfo *hints, struct addrinfo **res);
+
 
 #ifdef __cplusplus
 }

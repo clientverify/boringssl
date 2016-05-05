@@ -14,8 +14,6 @@
 
 #include <openssl/rand.h>
 
-#include <stdio.h>
-
 #include <assert.h>
 #include <limits.h>
 #include <string.h>

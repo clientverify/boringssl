@@ -150,7 +150,7 @@
 #include "internal.h"
 
 #ifdef CLIVER
-#include "../crypto/bio/KTest.h"
+#include <openssl/KTest.h>
 #endif
 
 /* tls1_P_hash computes the TLS P_<hash> function as described in RFC 5246,

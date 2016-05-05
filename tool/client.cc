@@ -15,7 +15,6 @@
 #include <openssl/base.h>
 
 #include <stdio.h>
-#include <iostream>
 
 #include <openssl/err.h>
 #include <openssl/pem.h>
@@ -28,7 +27,7 @@
 
 
 #ifdef CLIVER
-#include "../crypto/bio/KTest.h"
+#include <openssl/KTest.h>
 static const char *arg_ktest_filename = NULL;
 static enum kTestMode arg_ktest_mode = KTEST_NONE;
 #endif

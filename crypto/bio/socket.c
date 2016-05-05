@@ -56,7 +56,6 @@
  * [including the GNU Public Licence.] */
 
 #include <openssl/bio.h>
-#include <openssl/ssl.h>
 #include <fcntl.h>
 #include <string.h>
 
@@ -74,7 +73,7 @@
 
 
 #ifdef CLIVER
-#include "KTest.h"
+#include <openssl/KTest.h>
 #endif
 
 #if !defined(OPENSSL_WINDOWS)
