@@ -28,7 +28,7 @@
 #include "../internal.h"
 
 
-#if defined(ASM_GEN) ||          \
+#if (!defined(CLIVER)) && defined(ASM_GEN) ||          \
     !defined(OPENSSL_WINDOWS) && \
         (defined(OPENSSL_X86_64) || defined(OPENSSL_X86)) && defined(__SSE2__)
 

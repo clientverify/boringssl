@@ -23,7 +23,7 @@
 #include <openssl/cpu.h>
 
 
-#if defined(OPENSSL_WINDOWS) || !defined(OPENSSL_X86_64)
+#if defined(CLIVER) || defined(OPENSSL_WINDOWS) || !defined(OPENSSL_X86_64)
 
 #if defined(OPENSSL_X86) || defined(OPENSSL_X86_64) || defined(OPENSSL_ARM)
 /* We can assume little-endian. */
