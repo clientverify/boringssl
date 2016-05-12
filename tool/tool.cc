@@ -15,6 +15,10 @@
 #include <string>
 #include <vector>
 
+#ifdef CLIVER
+#include <string.h>
+#endif
+
 #include <openssl/crypto.h>
 #include <openssl/err.h>
 #include <openssl/ssl.h>
@@ -26,6 +30,11 @@
 #include <libgen.h>
 #endif
 
+#ifdef CLIVER
+bool Client(int argc, char **argv);
+
+typedef bool (*tool_func_t)(int argc, char **argv);
+#else
 
 bool Ciphers(const std::vector<std::string> &args);
 bool Client(const std::vector<std::string> &args);
@@ -43,13 +52,17 @@ bool Server(const std::vector<std::string> &args);
 bool Speed(const std::vector<std::string> &args);
 
 typedef bool (*tool_func_t)(const std::vector<std::string> &args);
-
+#endif //CLIVER
 struct Tool {
   const char *name;
   tool_func_t func;
 };
 
 static const Tool kTools[] = {
+#ifdef CLIVER
+    { "client", Client },
+    { "", nullptr },
+#else
   { "ciphers", Ciphers },
   { "client", Client },
   { "generate-ed25519", GenerateEd25519Key },
@@ -67,6 +80,7 @@ static const Tool kTools[] = {
   { "sha512sum", SHA512Sum },
   { "speed", Speed },
   { "", nullptr },
+#endif
 };
 
 static void usage(const char *name) {
@@ -83,10 +97,10 @@ static void usage(const char *name) {
   }
 }
 
-tool_func_t FindTool(const std::string &name) {
+tool_func_t FindTool(char* name) {
   for (size_t i = 0;; i++) {
     const Tool &tool = kTools[i];
-    if (tool.func == nullptr || name == tool.name) {
+    if (tool.func == nullptr || strcmp(name, tool.name)) {
       return tool.func;
     }
   }
@@ -117,23 +131,42 @@ int main(int argc, char **argv) {
   int starting_arg = 1;
   tool_func_t tool = nullptr;
 #if !defined(OPENSSL_WINDOWS)
+  printf("HAPPY TUESDAY: calling  FindTool(basename(argv[0])\n");
   tool = FindTool(basename(argv[0]));
+  printf("HAPPY TUESDAY: finished FindTool(basename(argv[0])\n");
 #endif
+  printf("HAPPY TUESDAY: 1\n");
   if (tool == nullptr) {
     starting_arg++;
+    printf("HAPPY TUESDAY: 2\n");
     if (argc > 1) {
+      printf("HAPPY TUESDAY: 3\n");
       tool = FindTool(argv[1]);
+      printf("HAPPY TUESDAY: 4\n");
     }
   }
+  printf("HAPPY TUESDAY: 5\n");
   if (tool == nullptr) {
+    printf("HAPPY TUESDAY: 6\n");
     usage(argv[0]);
     return 1;
   }
+  printf("HAPPY TUESDAY: 7...\n");
+#ifdef CLIVER
+ if(starting_arg==1)
+ printf("HAPPY TUESDAY: starting_arg==1\n");//, argv[starting_arg]);
+ else if (starting_arg==2)
+ printf("HAPPY TUESDAY: starting_arg==2\n");
+ else printf("HAPPY TUESDAY: starting_arg > 2\n");
+ return !tool(argc-starting_arg-1, argv+starting_arg+1);
 
+#else
+  printf("HAPPY TUESDAY: shouldn't get here\n");
   std::vector<std::string> args;
   for (int i = starting_arg; i < argc; i++) {
     args.push_back(argv[i]);
   }
 
   return !tool(args);
+#endif //CLIVER
 }
