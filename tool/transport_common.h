@@ -26,6 +26,8 @@ bool InitSocketLibrary();
 // It returns true on success and false otherwise.
 bool Connect(int *out_sock, const std::string &hostname_and_port);
 
+bool Connect(int *out_sock, char* hostname_and_port);
+
 // Accept sets |*out_sock| to be a socket connected to the port given
 // in |port|, which should be of the form "123".
 // It returns true on success and false otherwise.

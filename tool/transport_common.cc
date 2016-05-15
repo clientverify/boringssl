@@ -69,19 +69,21 @@ bool InitSocketLibrary() {
   return true;
 }
 
+
 // Connect sets |*out_sock| to be a socket connected to the destination given
 // in |hostname_and_port|, which should be of the form "www.example.com:123".
 // It returns true on success and false otherwise.
-bool Connect(int *out_sock, const std::string &hostname_and_port) {
-  const size_t colon_offset = hostname_and_port.find_last_of(':');
-  std::string hostname, port;
-
-  if (colon_offset == std::string::npos) {
+bool Connect(int *out_sock, char *hostname_and_port) {
+  const char* hostname, * port;
+  char* str = strchr(hostname_and_port, ':');
+  if(str == NULL){
     hostname = hostname_and_port;
     port = "443";
   } else {
-    hostname = hostname_and_port.substr(0, colon_offset);
-    port = hostname_and_port.substr(colon_offset + 1);
+    *str = '\0';
+    str++;
+    hostname = hostname_and_port;
+    port = str;
   }
 
   struct addrinfo hint, *result;
@@ -91,9 +93,9 @@ bool Connect(int *out_sock, const std::string &hostname_and_port) {
 
   int ret;
 #ifdef CLIVER
-    ret = ktest_getaddrinfo(hostname.c_str(), port.c_str(), &hint, &result);
+    ret = ktest_getaddrinfo(hostname, port, &hint, &result);
 #else
-    ret = getaddrinfo(hostname.c_str(), port.c_str(), &hint, &result);
+    ret = getaddrinfo(hostname, port, &hint, &result);
 #endif
   if (ret != 0) {
     fprintf(stderr, "getaddrinfo returned: %s\n", gai_strerror(ret));
@@ -128,7 +130,6 @@ bool Connect(int *out_sock, const std::string &hostname_and_port) {
       break;
     }
   }
-
 #ifdef CLIVER
   if (ktest_connect(*out_sock, result->ai_addr, result->ai_addrlen) != 0){
     perror("connect");
@@ -140,13 +141,18 @@ bool Connect(int *out_sock, const std::string &hostname_and_port) {
     goto out;
   }
 #endif
-
   ok = true;
 
 out:
+
+#ifdef CLIVER
+  ktest_freeaddrinfo(result);
+#else
   freeaddrinfo(result);
+#endif
   return ok;
 }
+
 
 bool Accept(int *out_sock, const std::string &port) {
   struct sockaddr_in6 addr, cli_addr;
@@ -249,6 +255,7 @@ int PrintErrorCallback(const char *str, size_t len, void *ctx) {
 #endif // CLIVER
 
 bool TransferData(SSL *ssl, int sock) {
+  printf("HAPPY TUESDAY: entered TransferData\n");
   bool stdin_open = true;
 
   fd_set read_fds;
@@ -265,6 +272,7 @@ bool TransferData(SSL *ssl, int sock) {
     FD_SET(sock, &read_fds);
 
     int ret;
+    printf("HAPPY TUESDAY: TransferData calling select\n");
 #ifdef CLIVER
     ret = ktest_select(sock + 1, &read_fds, NULL, NULL, NULL);
 #else
@@ -279,6 +287,7 @@ bool TransferData(SSL *ssl, int sock) {
     if (FD_ISSET(0, &read_fds)) {
       uint8_t buffer[512];
       ssize_t n;
+      printf("HAPPY TUESDAY: TransferData reading stdin\n");
       do {
 #ifdef CLIVER
         n = ktest_raw_read_stdin(buffer, sizeof(buffer));
@@ -293,6 +302,7 @@ bool TransferData(SSL *ssl, int sock) {
 #if !defined(OPENSSL_WINDOWS)
         shutdown(sock, SHUT_WR);
 #else
+        printf("HAPPY TUESDAY: TransferData calling shutdown\n");
         shutdown(sock, SD_SEND);
 #endif
         continue;
@@ -304,6 +314,7 @@ bool TransferData(SSL *ssl, int sock) {
       if (!SocketSetNonBlocking(sock, false)) {
         return false;
       }
+      printf("HAPPY TUESDAY: TransferData SSL_write\n");
       int ssl_ret = SSL_write(ssl, buffer, n);
       if (!SocketSetNonBlocking(sock, true)) {
         return false;
@@ -335,7 +346,7 @@ bool TransferData(SSL *ssl, int sock) {
       } else if (ssl_ret == 0) {
         return true;
       }
-
+      printf("HAPPY TUESDAY: TransferData calling write\n");
       ssize_t n;
       do {
         n = write(1, buffer, ssl_ret);

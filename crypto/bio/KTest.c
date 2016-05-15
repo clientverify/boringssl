@@ -1054,8 +1054,6 @@ void ktest_finish() {
   }
 }
 
-
-
 int ktest_getaddrinfo(const char *node, const char *service,
                        const struct addrinfo *hints, struct addrinfo **res){
      if(ktest_mode == KTEST_PLAYBACK){
@@ -1065,4 +1063,7 @@ int ktest_getaddrinfo(const char *node, const char *service,
      }
 }
 
+void ktest_freeaddrinfo(struct addrinfo *res){
+    freeaddrinfo(res);
+}
 

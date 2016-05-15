@@ -89,7 +89,7 @@ extern "C" {
   int ktest_getaddrinfo(const char *node, const char *service,
                        const struct addrinfo *hints, struct addrinfo **res);
 
-
+  void ktest_freeaddrinfo(struct addrinfo *res);
 #ifdef __cplusplus
 }
 #endif
