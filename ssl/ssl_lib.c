@@ -157,6 +157,10 @@
 #include "internal.h"
 #include "../crypto/internal.h"
 
+#ifdef CLIVER
+#include <openssl/KTest.h>
+#endif
+
 
 /* |SSL_R_UNKNOWN_PROTOCOL| is no longer emitted, but continue to define it
  * to avoid downstream churn. */
@@ -218,6 +222,7 @@ static int ssl_session_cmp(const SSL_SESSION *a, const SSL_SESSION *b) {
 }
 
 SSL_CTX *SSL_CTX_new(const SSL_METHOD *method) {
+  printf("HAPPY TUESDAY: SSL_CTX_new entered\n");
   SSL_CTX *ret = NULL;
 
   if (method == NULL) {
@@ -264,7 +269,7 @@ SSL_CTX *SSL_CTX_new(const SSL_METHOD *method) {
   if (ret->cert_store == NULL) {
     goto err;
   }
-
+  printf("HAPPY TUESDAY: SSL_CTX_new creating cipher list\n");
   ssl_create_cipher_list(ret->method, &ret->cipher_list,
                          &ret->cipher_list_by_id, SSL_DEFAULT_CIPHER_LIST);
   if (ret->cipher_list == NULL ||
@@ -287,6 +292,7 @@ SSL_CTX *SSL_CTX_new(const SSL_METHOD *method) {
 
   ret->max_send_fragment = SSL3_RT_MAX_PLAIN_LENGTH;
 
+  printf("HAPPY TUESDAY: SSL_CTX_new Setup RFC4507 ticket keys\n");
   /* Setup RFC4507 ticket keys */
   if (!RAND_bytes(ret->tlsext_tick_key_name, 16) ||
       !RAND_bytes(ret->tlsext_tick_hmac_key, 16) ||
@@ -572,7 +578,7 @@ int SSL_connect(SSL *ssl) {
     OPENSSL_PUT_ERROR(SSL, ERR_R_INTERNAL_ERROR);
     return -1;
   }
-
+  printf("HAPPY TUESDAY: SSL_connect calling: ssl->handshake_func\n");
   return ssl->handshake_func(ssl);
 }
 

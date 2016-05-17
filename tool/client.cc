@@ -104,9 +104,9 @@ static const struct argument kArguments[] = {
     },
 };
 
-static ScopedEVP_PKEY LoadPrivateKey(const std::string &file) {
+static ScopedEVP_PKEY LoadPrivateKey(char* file) {
   ScopedBIO bio(BIO_new(BIO_s_file()));
-  if (!bio || !BIO_read_filename(bio.get(), file.c_str())) {
+  if (!bio || !BIO_read_filename(bio.get(), file)) {
     return nullptr;
   }
   ScopedEVP_PKEY pkey(PEM_read_bio_PrivateKey(bio.get(), nullptr, nullptr,
@@ -154,10 +154,6 @@ bool fail(){
 }
 
 bool Client(int argc, char **argv) {
-  printf("HAPPY TUESDAY: arguements\n");
-  for(int i = 0; i < argc; i++){
-    printf("HAPPY TUESDAY: %s %d\n", argv[i], i);
-  }
 
   //Variables
   char * cipher_string = NULL, *kfile = NULL, *connect_str = NULL,
@@ -168,24 +164,7 @@ bool Client(int argc, char **argv) {
   ScopedSSL ssl;
   int sock = -1, monotonically_decreasing;
 
-
-  if (!InitSocketLibrary()) {
-    return false;
-  }
-
-  ScopedSSL_CTX ctx(SSL_CTX_new(SSLv23_client_method()));
-
-  const char *keylog_file = getenv("SSLKEYLOGFILE");
-  if (keylog_file) {
-    g_keylog_file = fopen(keylog_file, "a");
-    if (g_keylog_file == nullptr) {
-      perror("fopen");
-      return false;
-    }
-    SSL_CTX_set_keylog_callback(ctx.get(), KeyLogCallback);
-  }
-
-
+  if(argc < 1) return fail();
 while(argc > 0){
   monotonically_decreasing = argc;
 #ifdef CLIVER
@@ -197,11 +176,10 @@ while(argc > 0){
     arg_ktest_filename = *argv;
     arg_ktest_mode = KTEST_RECORD;
     ktest_start(arg_ktest_filename, arg_ktest_mode);
-    printf("HAPPY TUESDAY: setting record\n");
 
+    if(argc < 2) break;
     argv++;
     argc--;
-    if(argc < 1) break;
 
   }
   else if(strcmp(*argv, "-playback") == 0){
@@ -212,11 +190,10 @@ while(argc > 0){
     arg_ktest_filename = *argv;
     arg_ktest_mode = KTEST_PLAYBACK;
     ktest_start(arg_ktest_filename, arg_ktest_mode);
-    printf("HAPPY TUESDAY: setting playback\n");
 
+    if(argc < 2) break;
     argv++;
     argc--;
-    if(argc < 1) break;
   }
 #endif
 
@@ -225,11 +202,10 @@ while(argc > 0){
     argc--;
     if(argc < 1) return fail();
     cipher_string = *argv;
-    printf("HAPPY TUESDAY: setting cipher string\n");
 
+    if(argc < 2) break;
     argv++;
     argc--;
-    if(argc < 1) break;
 
   }
   if (strcmp(*argv, "-alpn-protos") == 0) {
@@ -238,7 +214,6 @@ while(argc > 0){
     if(argc < 1) return fail();
 
     char* alpn_protos = *argv;
-    printf("HAPPY TUESDAY: setting alpn_protos\n");
 
     char* proto = strtok(alpn_protos, ",");
     int len;
@@ -255,17 +230,15 @@ while(argc > 0){
       proto = strtok(NULL, ",");
     }
 
-    printf("HAPPY TUESDAY: alpn_protos %s\n", wire.data());
+    if(argc < 2) break;
     argv++;
     argc--;
-    if(argc < 1) break;
   }
 
 
 
   if (strcmp(*argv, "-ocsp-stapling") == 0) {
     ocsp_on = true;
-    printf("HAPPY TUESDAY: ocsp_on\n");
 
     if(argc < 2) break;
     argv++;
@@ -273,7 +246,6 @@ while(argc > 0){
   }
   if (strcmp(*argv, "-signed-certificate-timestamps") == 0) {
     sig_cert_time = true;
-    printf("HAPPY TUESDAY: sig_cert_time\n");
 
     if(argc < 2) break;
     argv++;
@@ -286,7 +258,6 @@ while(argc > 0){
     if(argc < 1) return fail();
 
     kfile = *argv;
-    printf("HAPPY TUESDAY: -channel-id-key\n");
 
     if(argc < 2) break;
     argv++;
@@ -311,20 +282,31 @@ while(argc > 0){
     argc--;
     if(argc < 1) return fail();
 
-    printf("HAPPY TUESDAY: server_name\n");
     server_name = *argv;
 
     if(argc < 2) break;
     argv++;
     argc--;
-
   }
-
 
   if(monotonically_decreasing == argc)  return fail();
 }//XXX: end loop
+  //Taken from top!
+  if (!InitSocketLibrary()) {
+    return false;
+  }
 
-  printf("HAPPY TUESDAY: end loop\n");
+  ScopedSSL_CTX ctx(SSL_CTX_new(SSLv23_client_method()));
+
+  const char *keylog_file = getenv("SSLKEYLOGFILE");
+  if (keylog_file) {
+    g_keylog_file = fopen(keylog_file, "a");
+    if (g_keylog_file == nullptr) {
+      perror("fopen");
+      return false;
+    }
+    SSL_CTX_set_keylog_callback(ctx.get(), KeyLogCallback);
+  }
 
   if(cipher_string != NULL &&
     !SSL_CTX_set_cipher_list(ctx.get(), cipher_string)){
@@ -354,11 +336,9 @@ while(argc > 0){
     ssl = ScopedSSL(SSL_new(ctx.get()));
   } else return fail();
 
-
   if(server_name != NULL) {
     SSL_set_tlsext_host_name(ssl.get(), *argv);
   }
-
 
   SSL_set_bio(ssl.get(), bio.get(), bio.get());
   bio.release();
@@ -373,7 +353,6 @@ while(argc > 0){
 
   fprintf(stderr, "Connected.\n");
   PrintConnectionInfo(ssl.get());
-
   bool ok = TransferData(ssl.get(), sock);
 
 #ifdef CLIVER

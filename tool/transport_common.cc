@@ -216,12 +216,16 @@ void PrintConnectionInfo(const SSL *ssl) {
 
 bool SocketSetNonBlocking(int sock, bool is_non_blocking) {
   bool ok;
-
 #if defined(OPENSSL_WINDOWS)
   u_long arg = is_non_blocking;
   ok = 0 == ioctlsocket(sock, FIONBIO, &arg);
+#else //OPENSSL_WINDOWS
+
+#ifdef CLIVER
+  int flags = ktest_fcntl(sock, F_GETFL, 0);
 #else
   int flags = fcntl(sock, F_GETFL, 0);
+#endif
   if (flags < 0) {
     return false;
   }
@@ -230,8 +234,13 @@ bool SocketSetNonBlocking(int sock, bool is_non_blocking) {
   } else {
     flags &= ~O_NONBLOCK;
   }
+#ifdef CLIVER
+  ok = 0 == ktest_fcntl(sock, F_SETFL, flags);
+#else
   ok = 0 == fcntl(sock, F_SETFL, flags);
 #endif
+
+#endif //OPENSSL_WINDOWS
   if (!ok) {
     fprintf(stderr, "Failed to set socket non-blocking.\n");
   }
@@ -255,12 +264,10 @@ int PrintErrorCallback(const char *str, size_t len, void *ctx) {
 #endif // CLIVER
 
 bool TransferData(SSL *ssl, int sock) {
-  printf("HAPPY TUESDAY: entered TransferData\n");
   bool stdin_open = true;
 
   fd_set read_fds;
   FD_ZERO(&read_fds);
-
   if (!SocketSetNonBlocking(sock, true)) {
     return false;
   }
@@ -272,7 +279,6 @@ bool TransferData(SSL *ssl, int sock) {
     FD_SET(sock, &read_fds);
 
     int ret;
-    printf("HAPPY TUESDAY: TransferData calling select\n");
 #ifdef CLIVER
     ret = ktest_select(sock + 1, &read_fds, NULL, NULL, NULL);
 #else
@@ -287,22 +293,23 @@ bool TransferData(SSL *ssl, int sock) {
     if (FD_ISSET(0, &read_fds)) {
       uint8_t buffer[512];
       ssize_t n;
-      printf("HAPPY TUESDAY: TransferData reading stdin\n");
       do {
 #ifdef CLIVER
+        printf("HAPPY TUESDAY: TransferData calling ktest_raw_read_stdin\n");
         n = ktest_raw_read_stdin(buffer, sizeof(buffer));
 #else
         n = read(0, buffer, sizeof(buffer));
 #endif
       } while (n == -1 && errno == EINTR);
+      printf("HAPPY TUESDAY: TransferData reading stdin finshed\n");
 
       if (n == 0) {
         FD_CLR(0, &read_fds);
         stdin_open = false;
 #if !defined(OPENSSL_WINDOWS)
+        printf("HAPPY TUESDAY: shutdown\n");
         shutdown(sock, SHUT_WR);
 #else
-        printf("HAPPY TUESDAY: TransferData calling shutdown\n");
         shutdown(sock, SD_SEND);
 #endif
         continue;
@@ -314,7 +321,6 @@ bool TransferData(SSL *ssl, int sock) {
       if (!SocketSetNonBlocking(sock, false)) {
         return false;
       }
-      printf("HAPPY TUESDAY: TransferData SSL_write\n");
       int ssl_ret = SSL_write(ssl, buffer, n);
       if (!SocketSetNonBlocking(sock, true)) {
         return false;
@@ -333,6 +339,7 @@ bool TransferData(SSL *ssl, int sock) {
 
     if (FD_ISSET(sock, &read_fds)) {
       uint8_t buffer[512];
+      printf("HAPPY TUESDAY: SSL_read\n");
       int ssl_ret = SSL_read(ssl, buffer, sizeof(buffer));
 
       if (ssl_ret < 0) {
@@ -344,9 +351,9 @@ bool TransferData(SSL *ssl, int sock) {
         ERR_print_errors_cb(PrintErrorCallback, stderr);
         return false;
       } else if (ssl_ret == 0) {
+        printf("HAPPY TUESDAY: 0 length SSL_read, returning true\n");
         return true;
       }
-      printf("HAPPY TUESDAY: TransferData calling write\n");
       ssize_t n;
       do {
         n = write(1, buffer, ssl_ret);

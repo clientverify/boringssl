@@ -29,6 +29,8 @@
 #include <stdint.h>
 #include <sys/time.h>
 
+#include <fcntl.h>
+
 #define KTEST_VERSION 4 // Cliver-specific (incompatible with normal klee)
 #define KTEST_MAGIC_SIZE 5
 #define KTEST_MAGIC "KTEST"
@@ -712,9 +714,11 @@ ssize_t ktest_writesocket(int fd, const void *buf, size_t count)
       perror("ktest_writesocket error");
       exit(1);
     }
+    printf("HAPPY TUESDAY: ktest_writesocket record: %ld\n",num_bytes);
     return num_bytes;
   }
   else if (ktest_mode == KTEST_PLAYBACK) {
+    printf("HAPPY TUESDAY: ktest_writesocket PLAYBACK SENDING\n");
     KTestObject *o = KTOV_next_object(&ktov,
 				      ktest_object_names[CLIENT_TO_SERVER]);
     if (o->numBytes > count) {
@@ -735,6 +739,7 @@ ssize_t ktest_writesocket(int fd, const void *buf, size_t count)
       }
       printf("\n");
     }
+    printf("HAPPY TUESDAY: ktest_writesocket returning\n");
     return o->numBytes;
   }
   else {
@@ -787,13 +792,17 @@ ssize_t ktest_readsocket(int fd, void *buf, size_t count)
 
 int ktest_raw_read_stdin(void *buf,int siz)
 {
+  printf("HAPPY TUESDAY: ktest_raw_read_stdin entered\n");
   if (ktest_mode == KTEST_NONE) {
+      printf("HAPPY TUESDAY: ktest_raw_read_stdin calling read\n");
       return read(fileno(stdin), buf, siz);
   }
   else if (ktest_mode == KTEST_RECORD) {
       int ret;
       ret = read(fileno(stdin), buf, siz); // might return 0 (EOF)
       KTOV_append(&ktov, ktest_object_names[STDIN], ret, buf);
+      if(ret > 0) printf("HAPPY TUESDAY: ktest_raw_read_stdin ret > 0\n");
+      else printf("HAPPY TUESDAY: ktest_raw_read_stdin ret == 0\n");
       return ret;
   }
   else if (ktest_mode == KTEST_PLAYBACK) {
@@ -815,6 +824,9 @@ int ktest_raw_read_stdin(void *buf,int siz)
       }
       printf("\n");
     }
+    printf("HAPPY TUESDAY: ktest_raw_read_stdin returning\n");
+
+    if(o->numBytes == 0) printf("HAPPY TUESDAY: ktest_raw_read_stdin returning 0\n");
     return o->numBytes;
   }
   else {
@@ -843,6 +855,7 @@ time_t ktest_time(time_t *t)
   }
 }
 
+
 int ktest_RAND_bytes(unsigned char *buf, int num)
 {
   if (ktest_mode == KTEST_NONE) {
@@ -857,6 +870,7 @@ int ktest_RAND_bytes(unsigned char *buf, int num)
     return ret;
   }
   else if (ktest_mode == KTEST_PLAYBACK) {
+    printf("HAPPY TUESDAY: ktest_RAND_bytes playback\n");
     KTestObject *o = KTOV_next_object(&ktov, ktest_object_names[RNG]);
     if (o->numBytes != (unsigned int) num) {
       fprintf(stderr,
@@ -1066,4 +1080,11 @@ int ktest_getaddrinfo(const char *node, const char *service,
 void ktest_freeaddrinfo(struct addrinfo *res){
     freeaddrinfo(res);
 }
+
+//Always takes 3 arguements, workaround for klee socket abstraction.  In klee
+//klee model will be executed instead.
+int ktest_fcntl(int socket, int flags, int not_sure){
+    return fcntl(socket, flags, not_sure);
+}
+
 

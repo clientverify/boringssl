@@ -90,6 +90,8 @@ extern "C" {
                        const struct addrinfo *hints, struct addrinfo **res);
 
   void ktest_freeaddrinfo(struct addrinfo *res);
+  int ktest_fcntl(int socket, int flags, int not_sure);
+
 #ifdef __cplusplus
 }
 #endif

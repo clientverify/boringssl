@@ -173,6 +173,7 @@
 
 
 int ssl3_connect(SSL *ssl) {
+  printf("HAPPY TUESDAY: got to ssl3_connect\n");
   BUF_MEM *buf = NULL;
   void (*cb)(const SSL *ssl, int type, int value) = NULL;
   int ret = -1;
@@ -192,12 +193,13 @@ int ssl3_connect(SSL *ssl) {
   }
 
   ssl->in_handshake++;
-
+  printf("HAPPY TUESDAY: ssl3_connect for-loop\n");
   for (;;) {
     state = ssl->state;
 
     switch (ssl->state) {
       case SSL_ST_CONNECT:
+        printf("HAPPY TUESDAY: ssl3_connect case SSL_ST_CONNECT\n");
         if (cb != NULL) {
           cb(ssl, SSL_CB_HANDSHAKE_START, 1);
         }
@@ -233,8 +235,10 @@ int ssl3_connect(SSL *ssl) {
 
       case SSL3_ST_CW_CLNT_HELLO_A:
       case SSL3_ST_CW_CLNT_HELLO_B:
+        printf("HAPPY TUESDAY: ssl3_connect case SSL3_ST_CW_CLNT_HELLO_A/B\n");
         ssl->shutdown = 0;
         ret = ssl3_send_client_hello(ssl);
+        printf("HAPPY TUESDAY: ssl3_connect ssl3_send_client_hello returned\n");
         if (ret <= 0) {
           goto end;
         }
@@ -245,11 +249,12 @@ int ssl3_connect(SSL *ssl) {
         if (ssl->bbio != ssl->wbio) {
           ssl->wbio = BIO_push(ssl->bbio, ssl->wbio);
         }
-
+        printf("HAPPY TUESDAY: ssl3_connect SSL3_ST_CW_CLNT_HELLO_A/B breaking\n");
         break;
 
       case SSL3_ST_CR_SRVR_HELLO_A:
       case SSL3_ST_CR_SRVR_HELLO_B:
+        printf("HAPPY TUESDAY: ssl3_connect case SSL3_ST_CR_SRVR_HELLO_A/B\n");
         ret = ssl3_get_server_hello(ssl);
         if (ret <= 0) {
           goto end;
@@ -269,6 +274,7 @@ int ssl3_connect(SSL *ssl) {
 
       case SSL3_ST_CR_CERT_A:
       case SSL3_ST_CR_CERT_B:
+        printf("HAPPY TUESDAY: ssl3_connect case SSL3_ST_CR_CERT_A/B\n");
         if (ssl_cipher_has_server_public_key(ssl->s3->tmp.new_cipher)) {
           ret = ssl3_get_server_certificate(ssl);
           if (ret <= 0) {
@@ -287,6 +293,7 @@ int ssl3_connect(SSL *ssl) {
         break;
 
       case SSL3_ST_VERIFY_SERVER_CERT:
+        printf("HAPPY TUESDAY: ssl3_connect case SSL3_ST_VERIFY_SERVER_CERT\n");
         ret = ssl3_verify_server_cert(ssl);
         if (ret <= 0) {
           goto end;
@@ -298,6 +305,7 @@ int ssl3_connect(SSL *ssl) {
 
       case SSL3_ST_CR_KEY_EXCH_A:
       case SSL3_ST_CR_KEY_EXCH_B:
+        printf("HAPPY TUESDAY: ssl3_connect case SSL3_ST_CR_KEY_EXCH_A/B\n");
         ret = ssl3_get_server_key_exchange(ssl);
         if (ret <= 0) {
           goto end;
@@ -308,6 +316,7 @@ int ssl3_connect(SSL *ssl) {
 
       case SSL3_ST_CR_CERT_REQ_A:
       case SSL3_ST_CR_CERT_REQ_B:
+        printf("HAPPY TUESDAY: ssl3_connect case SSL3_ST_CR_CERT_REQ_A/B\n");
         ret = ssl3_get_certificate_request(ssl);
         if (ret <= 0) {
           goto end;
@@ -318,6 +327,7 @@ int ssl3_connect(SSL *ssl) {
 
       case SSL3_ST_CR_SRVR_DONE_A:
       case SSL3_ST_CR_SRVR_DONE_B:
+        printf("HAPPY TUESDAY: ssl3_connect case SSL3_ST_CR_SRVR_DONE_A/B\n");
         ret = ssl3_get_server_done(ssl);
         if (ret <= 0) {
           goto end;
@@ -335,6 +345,7 @@ int ssl3_connect(SSL *ssl) {
       case SSL3_ST_CW_CERT_B:
       case SSL3_ST_CW_CERT_C:
       case SSL3_ST_CW_CERT_D:
+        printf("HAPPY TUESDAY: ssl3_connect case SSL3_ST_CW_CERT_A/B/C/D\n");
         ret = ssl3_send_client_certificate(ssl);
         if (ret <= 0) {
           goto end;
@@ -345,6 +356,7 @@ int ssl3_connect(SSL *ssl) {
 
       case SSL3_ST_CW_KEY_EXCH_A:
       case SSL3_ST_CW_KEY_EXCH_B:
+        printf("HAPPY TUESDAY: ssl3_connect case SSL3_ST_CW_KEY_EXCH_A/B\n");
         ret = ssl3_send_client_key_exchange(ssl);
         if (ret <= 0) {
           goto end;
@@ -363,6 +375,7 @@ int ssl3_connect(SSL *ssl) {
       case SSL3_ST_CW_CERT_VRFY_A:
       case SSL3_ST_CW_CERT_VRFY_B:
       case SSL3_ST_CW_CERT_VRFY_C:
+        printf("HAPPY TUESDAY: ssl3_connect SSL3_ST_CW_CERT_VRFY_A/B/C\n");
         ret = ssl3_send_cert_verify(ssl);
         if (ret <= 0) {
           goto end;
@@ -373,6 +386,7 @@ int ssl3_connect(SSL *ssl) {
 
       case SSL3_ST_CW_CHANGE_A:
       case SSL3_ST_CW_CHANGE_B:
+        printf("HAPPY TUESDAY: ssl3_connect SSL3_ST_CW_CHANGE_A/B\n");
         ret = ssl3_send_change_cipher_spec(ssl, SSL3_ST_CW_CHANGE_A,
                                            SSL3_ST_CW_CHANGE_B);
         if (ret <= 0) {
@@ -397,6 +411,7 @@ int ssl3_connect(SSL *ssl) {
 
       case SSL3_ST_CW_NEXT_PROTO_A:
       case SSL3_ST_CW_NEXT_PROTO_B:
+        printf("HAPPY TUESDAY: ssl3_connect SSL3_ST_CW_NEXT_PROTO_A/B\n");
         ret = ssl3_send_next_proto(ssl);
         if (ret <= 0) {
           goto end;
@@ -411,6 +426,7 @@ int ssl3_connect(SSL *ssl) {
 
       case SSL3_ST_CW_CHANNEL_ID_A:
       case SSL3_ST_CW_CHANNEL_ID_B:
+        printf("HAPPY TUESDAY: ssl3_connect SSL3_ST_CW_CHANNEL_ID_A/B\n");
         ret = ssl3_send_channel_id(ssl);
         if (ret <= 0) {
           goto end;
@@ -420,6 +436,7 @@ int ssl3_connect(SSL *ssl) {
 
       case SSL3_ST_CW_FINISHED_A:
       case SSL3_ST_CW_FINISHED_B:
+        printf("HAPPY TUESDAY: ssl3_connect SSL3_ST_CW_FINISHED_A/B\n");
         ret = ssl3_send_finished(ssl, SSL3_ST_CW_FINISHED_A,
                                  SSL3_ST_CW_FINISHED_B);
         if (ret <= 0) {
@@ -563,6 +580,7 @@ int ssl3_connect(SSL *ssl) {
         ret = -1;
         goto end;
     }
+    printf("HAPPY TUESDAY: ssl3_connect for-loop over\n");
 
     if (!ssl->s3->tmp.reuse_message && !skip) {
       if (cb != NULL && ssl->state != state) {
@@ -640,6 +658,7 @@ static int ssl3_write_client_cipher_list(SSL *ssl, CBB *out) {
 }
 
 int ssl3_send_client_hello(SSL *ssl) {
+  printf("HAPPY TUESDAY: ssl3_send_client_hello entered\n"); 
   if (ssl->state == SSL3_ST_CW_CLNT_HELLO_B) {
     return ssl_do_write(ssl);
   }
@@ -673,6 +692,7 @@ int ssl3_send_client_hello(SSL *ssl) {
 
   /* If the configured session has expired or was created at a version higher
    * than our maximum version, drop it. */
+   printf("HAPPY TUESDAY: ssl3_send_client_hello 1\n");
   if (ssl->session != NULL &&
       (ssl->session->session_id_length == 0 || ssl->session->not_resumable ||
        ssl->session->timeout < (long)(time(NULL) - ssl->session->time) ||
@@ -680,6 +700,7 @@ int ssl3_send_client_hello(SSL *ssl) {
        (SSL_IS_DTLS(ssl) && ssl->session->ssl_version < ssl->version))) {
     SSL_set_session(ssl, NULL);
   }
+  printf("HAPPY TUESDAY: ssl3_send_client_hello 2\n");
 
   /* If resending the ClientHello in DTLS after a HelloVerifyRequest, don't
    * renegerate the client_random. The random must be reused. */
@@ -688,6 +709,7 @@ int ssl3_send_client_hello(SSL *ssl) {
                              sizeof(ssl->s3->client_random), 0 /* client */)) {
     goto err;
   }
+  printf("HAPPY TUESDAY: ssl3_send_client_hello 3\n");
 
   /* Renegotiations do not participate in session resumption. */
   int has_session = ssl->session != NULL &&
@@ -704,6 +726,7 @@ int ssl3_send_client_hello(SSL *ssl) {
                       ssl->session->session_id_length))) {
     goto err;
   }
+  printf("HAPPY TUESDAY: ssl3_send_client_hello 4\n");
 
   if (SSL_IS_DTLS(ssl)) {
     if (!CBB_add_u8_length_prefixed(&cbb, &child) ||
@@ -711,6 +734,7 @@ int ssl3_send_client_hello(SSL *ssl) {
       goto err;
     }
   }
+  printf("HAPPY TUESDAY: ssl3_send_client_hello 5\n");
 
   size_t length;
   if (!ssl3_write_client_cipher_list(ssl, &cbb) ||
@@ -722,6 +746,8 @@ int ssl3_send_client_hello(SSL *ssl) {
       !ssl_set_handshake_header(ssl, SSL3_MT_CLIENT_HELLO, length)) {
     goto err;
   }
+  printf("HAPPY TUESDAY: ssl3_send_client_hello 6\n");
+
 
   ssl->state = SSL3_ST_CW_CLNT_HELLO_B;
   return ssl_do_write(ssl);
