@@ -448,19 +448,16 @@ err:
  * update etc. */
 int tls1_handshake_digest(SSL *ssl, uint8_t *out, size_t out_len) {
   size_t md5_len = 0;
-  printf("HAPPY TUESDAY: tls1_handshake_digest\n");
   if (EVP_MD_CTX_md(&ssl->s3->handshake_md5) != NULL &&
       !append_digest(&ssl->s3->handshake_md5, out, &md5_len, out_len)) {
     return -1;
   }
-  printf("HAPPY TUESDAY: tls1_handshake_digest 1\n");
 
   size_t len;
   if (!append_digest(&ssl->s3->handshake_hash, out + md5_len, &len,
                      out_len - md5_len)) {
     return -1;
   }
-  printf("HAPPY TUESDAY: tls1_handshake_digest 2\n");
 
   return (int)(md5_len + len);
 }
@@ -497,41 +494,31 @@ static int tls1_final_finish_mac(SSL *ssl, int from_server, uint8_t *out) {
 int tls1_generate_master_secret(SSL *ssl, uint8_t *out,
                                 const uint8_t *premaster,
                                 size_t premaster_len) {
-  printf("HAPPY TUESDAY: tls1_generate_master_secret 1\n");
   if (ssl->s3->tmp.extended_master_secret) {
-    printf("HAPPY TUESDAY: tls1_generate_master_secret 2\n");
     uint8_t digests[EVP_MAX_MD_SIZE];
     int digests_len = tls1_handshake_digest(ssl, digests, sizeof(digests));
-    printf("HAPPY TUESDAY: tls1_generate_master_secret 2.1\n");
     if (digests_len == -1) {
-      printf("HAPPY TUESDAY: tls1_generate_master_secret 3\n");
       return 0;
     }
-    printf("HAPPY TUESDAY: tls1_generate_master_secret 2.2\n");
     if (!ssl->s3->enc_method->prf(ssl, out, SSL3_MASTER_SECRET_SIZE, premaster,
                                   premaster_len,
                                   TLS_MD_EXTENDED_MASTER_SECRET_CONST,
                                   TLS_MD_EXTENDED_MASTER_SECRET_CONST_SIZE,
                                   digests, digests_len, NULL, 0)) {
-      printf("HAPPY TUESDAY: tls1_generate_master_secret 4\n");
       return 0;
     }
   } else {
-    printf("HAPPY TUESDAY: tls1_generate_master_secret 5\n");
     if (!ssl->s3->enc_method->prf(ssl, out, SSL3_MASTER_SECRET_SIZE, premaster,
                                   premaster_len, TLS_MD_MASTER_SECRET_CONST,
                                   TLS_MD_MASTER_SECRET_CONST_SIZE,
                                   ssl->s3->client_random, SSL3_RANDOM_SIZE,
                                   ssl->s3->server_random, SSL3_RANDOM_SIZE)) {
-      printf("HAPPY TUESDAY: tls1_generate_master_secret 6\n");
       return 0;
     }
   }
 #ifdef CLIVER
-  printf("HAPPY TUESDAY: tls1_generate_master_secret 7\n");
   ktest_master_secret(ssl->session->master_key, SSL3_MASTER_SECRET_SIZE);
 #endif
-  printf("HAPPY TUESDAY: tls1_generate_master_secret 8\n");
   return SSL3_MASTER_SECRET_SIZE;
 }
 

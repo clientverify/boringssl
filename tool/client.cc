@@ -41,6 +41,7 @@ static const struct argument kArguments[] = {
      "-cipher", kOptionalArgument,
      "An OpenSSL-style cipher suite string that configures the offered ciphers",
     },
+#ifndef CLIVER
     {
      "-max-version", kOptionalArgument,
      "The maximum acceptable protocol version",
@@ -49,22 +50,27 @@ static const struct argument kArguments[] = {
      "-min-version", kOptionalArgument,
      "The minimum acceptable protocol version",
     },
+#endif
     {
      "-server-name", kOptionalArgument,
      "The server name to advertise",
     },
+#ifndef CLIVER
     {
      "-select-next-proto", kOptionalArgument,
      "An NPN protocol to select if the server supports NPN",
     },
+#endif
     {
      "-alpn-protos", kOptionalArgument,
      "A comma-separated list of ALPN protocols to advertise",
     },
+#ifndef CLIVER
     {
      "-fallback-scsv", kBooleanArgument,
      "Enable FALLBACK_SCSV",
     },
+#endif
     {
      "-ocsp-stapling", kBooleanArgument,
      "Advertise support for OCSP stabling",
@@ -77,6 +83,7 @@ static const struct argument kArguments[] = {
      "-channel-id-key", kOptionalArgument,
      "The key to use for signing a channel ID",
     },
+#ifndef CLIVER
     {
      "-false-start", kBooleanArgument,
      "Enable False Start",
@@ -87,6 +94,7 @@ static const struct argument kArguments[] = {
     { "-session-out", kOptionalArgument,
       "A file to write the negotiated session to.",
     },
+#endif
 #ifdef CLIVER
     { "-record" , kOptionalArgument,
       "File to record packets and other inputs.",
@@ -147,7 +155,7 @@ static void KeyLogCallback(const SSL *ssl, const char *line) {
   fprintf(g_keylog_file, "%s\n", line);
   fflush(g_keylog_file);
 }
-#ifdef CLIVER
+//#ifdef CLIVER
 bool fail(){
     PrintUsage(kArguments);
     return false;
@@ -168,7 +176,7 @@ bool Client(int argc, char **argv) {
 while(argc > 0){
   monotonically_decreasing = argc;
 #ifdef CLIVER
-  if (strcmp(*argv,"-record") == 0){
+ if (strcmp(*argv,"-record") == 0){
     argv++;
     argc--;
     if(argc < 1) return fail();
@@ -196,7 +204,6 @@ while(argc > 0){
     argc--;
   }
 #endif
-
   if (strcmp(*argv, "-cipher") == 0){
     argv++;
     argc--;
@@ -361,203 +368,4 @@ while(argc > 0){
   return ok;
 }
 
-/*
-#else
-bool Client(const std::vector<std::string> &args) {
-
-  if (!InitSocketLibrary()) {
-    return false;
-  }
-
-  std::map<std::string, std::string> args_map;
-
-  if (!ParseKeyValueArguments(&args_map, args, kArguments)) {
-    PrintUsage(kArguments);
-    return false;
-  }
-
-  ScopedSSL_CTX ctx(SSL_CTX_new(SSLv23_client_method()));
-
-  const char *keylog_file = getenv("SSLKEYLOGFILE");
-  if (keylog_file) {
-    g_keylog_file = fopen(keylog_file, "a");
-    if (g_keylog_file == nullptr) {
-      perror("fopen");
-      return false;
-    }
-    SSL_CTX_set_keylog_callback(ctx.get(), KeyLogCallback);
-  }
-
-#ifdef CLIVER
-  if (args_map.count("-record") != 0){
-      arg_ktest_filename = args_map["-record"].c_str();
-      arg_ktest_mode = KTEST_RECORD;
-  }
-  else if(args_map.count("-playback") != 0){
-      arg_ktest_filename = args_map["-playback"].c_str();
-      arg_ktest_mode = KTEST_PLAYBACK;
-  }
-  ktest_start(arg_ktest_filename, arg_ktest_mode);
-#endif
-
-
-
-  if (args_map.count("-cipher") != 0 &&
-      !SSL_CTX_set_cipher_list(ctx.get(), args_map["-cipher"].c_str())) {
-    fprintf(stderr, "Failed setting cipher list\n");
-    return false;
-  }
-
-  if (args_map.count("-max-version") != 0) {
-    uint16_t version;
-    if (!VersionFromString(&version, args_map["-max-version"])) {
-      fprintf(stderr, "Unknown protocol version: '%s'\n",
-              args_map["-max-version"].c_str());
-      return false;
-    }
-    SSL_CTX_set_max_version(ctx.get(), version);
-  }
-
-  if (args_map.count("-min-version") != 0) {
-    uint16_t version;
-    if (!VersionFromString(&version, args_map["-min-version"])) {
-      fprintf(stderr, "Unknown protocol version: '%s'\n",
-              args_map["-min-version"].c_str());
-      return false;
-    }
-    SSL_CTX_set_min_version(ctx.get(), version);
-  }
-
-  if (args_map.count("-select-next-proto") != 0) {
-    const std::string &proto = args_map["-select-next-proto"];
-    if (proto.size() > 255) {
-      fprintf(stderr, "Bad NPN protocol: '%s'\n", proto.c_str());
-      return false;
-    }
-    // |SSL_CTX_set_next_proto_select_cb| is not const-correct.
-    SSL_CTX_set_next_proto_select_cb(ctx.get(), NextProtoSelectCallback,
-                                     const_cast<char *>(proto.c_str()));
-  }
-
-  if (args_map.count("-alpn-protos") != 0) {
-    const std::string &alpn_protos = args_map["-alpn-protos"];
-    std::vector<uint8_t> wire;
-    size_t i = 0;
-    while (i <= alpn_protos.size()) {
-      size_t j = alpn_protos.find(',', i);
-      if (j == std::string::npos) {
-        j = alpn_protos.size();
-      }
-      size_t len = j - i;
-      if (len > 255) {
-        fprintf(stderr, "Invalid ALPN protocols: '%s'\n", alpn_protos.c_str());
-        return false;
-      }
-      wire.push_back(static_cast<uint8_t>(len));
-      wire.resize(wire.size() + len);
-      memcpy(wire.data() + wire.size() - len, alpn_protos.data() + i, len);
-      i = j + 1;
-    }
-    if (SSL_CTX_set_alpn_protos(ctx.get(), wire.data(), wire.size()) != 0) {
-      return false;
-    }
-  }
-
-  if (args_map.count("-fallback-scsv") != 0) {
-    SSL_CTX_set_mode(ctx.get(), SSL_MODE_SEND_FALLBACK_SCSV);
-  }
-
-  if (args_map.count("-ocsp-stapling") != 0) {
-    SSL_CTX_enable_ocsp_stapling(ctx.get());
-  }
-
-  if (args_map.count("-signed-certificate-timestamps") != 0) {
-    SSL_CTX_enable_signed_cert_timestamps(ctx.get());
-  }
-
-  if (args_map.count("-channel-id-key") != 0) {
-    ScopedEVP_PKEY pkey = LoadPrivateKey(args_map["-channel-id-key"]);
-    if (!pkey || !SSL_CTX_set1_tls_channel_id(ctx.get(), pkey.get())) {
-      return false;
-    }
-  }
-
-  if (args_map.count("-false-start") != 0) {
-    SSL_CTX_set_mode(ctx.get(), SSL_MODE_ENABLE_FALSE_START);
-  }
-
-  if (args_map.count("-key") != 0) {
-    const std::string &key = args_map["-key"];
-    if (!SSL_CTX_use_PrivateKey_file(ctx.get(), key.c_str(), SSL_FILETYPE_PEM)) {
-      fprintf(stderr, "Failed to load private key: %s\n", key.c_str());
-      return false;
-    }
-    if (!SSL_CTX_use_certificate_chain_file(ctx.get(), key.c_str())) {
-      fprintf(stderr, "Failed to load cert chain: %s\n", key.c_str());
-      return false;
-    }
-  }
-
-  int sock = -1;
-  if (!Connect(&sock, args_map["-connect"])) {
-    return false;
-  }
-
-  ScopedBIO bio(BIO_new_socket(sock, BIO_CLOSE));
-  ScopedSSL ssl(SSL_new(ctx.get()));
-
-  if (args_map.count("-server-name") != 0) {
-    SSL_set_tlsext_host_name(ssl.get(), args_map["-server-name"].c_str());
-  }
-
-  if (args_map.count("-session-in") != 0) {
-    ScopedBIO in(BIO_new_file(args_map["-session-in"].c_str(), "rb"));
-    if (!in) {
-      fprintf(stderr, "Error reading session\n");
-      ERR_print_errors_cb(PrintErrorCallback, stderr);
-      return false;
-    }
-    ScopedSSL_SESSION session(PEM_read_bio_SSL_SESSION(in.get(), nullptr,
-                                                       nullptr, nullptr));
-    if (!session) {
-      fprintf(stderr, "Error reading session\n");
-      ERR_print_errors_cb(PrintErrorCallback, stderr);
-      return false;
-    }
-    SSL_set_session(ssl.get(), session.get());
-  }
-
-
-  SSL_set_bio(ssl.get(), bio.get(), bio.get());
-  bio.release();
-
-  int ret = SSL_connect(ssl.get());
-  if (ret != 1) {
-    int ssl_err = SSL_get_error(ssl.get(), ret);
-    fprintf(stderr, "Error while connecting: %d\n", ssl_err);
-    ERR_print_errors_cb(PrintErrorCallback, stderr);
-    return false;
-  }
-
-  fprintf(stderr, "Connected.\n");
-  PrintConnectionInfo(ssl.get());
-
-  if (args_map.count("-session-out") != 0) {
-    ScopedBIO out(BIO_new_file(args_map["-session-out"].c_str(), "wb"));
-    if (!out ||
-        !PEM_write_bio_SSL_SESSION(out.get(), SSL_get0_session(ssl.get()))) {
-      fprintf(stderr, "Error while saving session:\n");
-      ERR_print_errors_cb(PrintErrorCallback, stderr);
-      return false;
-    }
-  }
-
-  bool ok = TransferData(ssl.get(), sock);
-
-#ifdef CLIVER
-  ktest_finish();
-#endif
-  return ok;
-}
-*/
-#endif
+//#endif

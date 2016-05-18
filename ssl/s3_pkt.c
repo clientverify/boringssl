@@ -189,7 +189,6 @@ int ssl3_write_app_data(SSL *ssl, const void *buf, int len) {
 /* Call this to write data in records of type |type|. It will return <= 0 if
  * not all data has been sent or non-blocking IO. */
 int ssl3_write_bytes(SSL *ssl, int type, const void *buf_, int len) {
-  printf("HAPPY TUESDAY: ssl3_write_bytes\n");
   const uint8_t *buf = buf_;
   unsigned int tot, n, nw;
   int i;
@@ -232,9 +231,7 @@ int ssl3_write_bytes(SSL *ssl, int type, const void *buf_, int len) {
     } else {
       nw = n;
     }
-    printf("HAPPY TUESDAY: ssl3_write_bytes calling do_ssl3_write\n");
     i = do_ssl3_write(ssl, type, &buf[tot], nw);
-    printf("HAPPY TUESDAY: ssl3_write_bytes returned do_ssl3_write\n");
     if (i <= 0) {
       ssl->s3->wnum = tot;
       return i;
@@ -252,7 +249,6 @@ int ssl3_write_bytes(SSL *ssl, int type, const void *buf_, int len) {
 
 static int ssl3_write_pending(SSL *ssl, int type, const uint8_t *buf,
                               unsigned int len) {
-  printf("HAPPY TUESDAY: ssl3_write_pending\n");
   if (ssl->s3->wpend_tot > (int)len ||
       (ssl->s3->wpend_buf != buf &&
        !(ssl->mode & SSL_MODE_ACCEPT_MOVING_WRITE_BUFFER)) ||
@@ -260,26 +256,20 @@ static int ssl3_write_pending(SSL *ssl, int type, const uint8_t *buf,
     OPENSSL_PUT_ERROR(SSL, SSL_R_BAD_WRITE_RETRY);
     return -1;
   }
-  printf("HAPPY TUESDAY: ssl3_write_pending 1\n");
 
   int ret = ssl_write_buffer_flush(ssl);
-  printf("HAPPY TUESDAY: ssl3_write_pending 2\n");
   if (ret <= 0) {
-   printf("HAPPY TUESDAY: ssl3_write_pending 3\n");
     return ret;
   }
-  printf("HAPPY TUESDAY: ssl3_write_pending 4\n");
   return ssl->s3->wpend_ret;
 }
 
 /* do_ssl3_write writes an SSL record of the given type. */
 static int do_ssl3_write(SSL *ssl, int type, const uint8_t *buf, unsigned len) {
-  printf("HAPPY TUESDAY: do_ssl3_write\n");
   /* If there is still data from the previous record, flush it. */
   if (ssl_write_buffer_is_pending(ssl)) {
     return ssl3_write_pending(ssl, type, buf, len);
   }
-  printf("HAPPY TUESDAY: do_ssl3_write 1\n");
 
   /* If we have an alert to send, lets send it */
   if (ssl->s3->alert_dispatch) {
@@ -289,13 +279,11 @@ static int do_ssl3_write(SSL *ssl, int type, const uint8_t *buf, unsigned len) {
     }
     /* if it went, fall through and send more stuff */
   }
-  printf("HAPPY TUESDAY: do_ssl3_write 2\n");
 
   if (len > SSL3_RT_MAX_PLAIN_LENGTH) {
     OPENSSL_PUT_ERROR(SSL, ERR_R_INTERNAL_ERROR);
     return -1;
   }
-  printf("HAPPY TUESDAY: do_ssl3_write 3\n");
 
   if (len == 0) {
     return 0;
@@ -306,16 +294,13 @@ static int do_ssl3_write(SSL *ssl, int type, const uint8_t *buf, unsigned len) {
     OPENSSL_PUT_ERROR(SSL, ERR_R_OVERFLOW);
     return -1;
   }
-  printf("HAPPY TUESDAY: do_ssl3_write 4\n");
   uint8_t *out;
   size_t ciphertext_len;
   if (!ssl_write_buffer_init(ssl, &out, max_out) ||
       !tls_seal_record(ssl, out, &ciphertext_len, max_out, type, buf, len)) {
     return -1;
   }
-  printf("HAPPY TUESDAY: do_ssl3_write 5\n");
   ssl_write_buffer_set_len(ssl, ciphertext_len);
-  printf("HAPPY TUESDAY: do_ssl3_write 6\n");
 
   /* memorize arguments so that ssl3_write_pending can detect bad write retries
    * later */
@@ -324,7 +309,6 @@ static int do_ssl3_write(SSL *ssl, int type, const uint8_t *buf, unsigned len) {
   ssl->s3->wpend_type = type;
   ssl->s3->wpend_ret = len;
 
-  printf("HAPPY TUESDAY: do_ssl3_write 7\n");
   /* we now just need to write the buffer */
   return ssl3_write_pending(ssl, type, buf, len);
 }

@@ -134,12 +134,9 @@
  * (SSL3_RT_HANDSHAKE or SSL3_RT_CHANGE_CIPHER_SPEC). It returns -1 on error, 1
  * on success or zero if the transmission is still incomplete. */
 int ssl3_do_write(SSL *ssl, int type) {
-  printf("HAPPY TUESDAY: ssl3_do_write\n");
   int n;
-  printf("HAPPY TUESDAY: 1\n");
   n = ssl3_write_bytes(ssl, type, &ssl->init_buf->data[ssl->init_off],
                        ssl->init_num);
-  printf("HAPPY TUESDAY: 2\n");
   if (n < 0) {
     return -1;
   }
@@ -152,7 +149,6 @@ int ssl3_do_write(SSL *ssl, int type) {
     }
     return 1;
   }
-  printf("HAPPY TUESDAY: 3\n");
 
   ssl->init_off += n;
   ssl->init_num -= n;
