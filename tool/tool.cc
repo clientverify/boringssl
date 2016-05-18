@@ -64,7 +64,8 @@ static const Tool kTools[] = {
     { "", nullptr },
 #else
   { "ciphers", Ciphers },
-  { "client", Client },
+//Currently support for this option has been removed
+//  { "client", Client },
   { "generate-ed25519", GenerateEd25519Key },
   { "genrsa", GenerateRSAKey },
   { "md5sum", MD5Sum },
@@ -131,37 +132,23 @@ int main(int argc, char **argv) {
   int starting_arg = 1;
   tool_func_t tool = nullptr;
 #if !defined(OPENSSL_WINDOWS)
-  printf("HAPPY TUESDAY: calling  FindTool(basename(argv[0])\n");
   tool = FindTool(basename(argv[0]));
-  printf("HAPPY TUESDAY: finished FindTool(basename(argv[0])\n");
 #endif
-  printf("HAPPY TUESDAY: 1\n");
   if (tool == nullptr) {
     starting_arg++;
-    printf("HAPPY TUESDAY: 2\n");
     if (argc > 1) {
-      printf("HAPPY TUESDAY: 3\n");
       tool = FindTool(argv[1]);
-      printf("HAPPY TUESDAY: 4\n");
     }
   }
-  printf("HAPPY TUESDAY: 5\n");
   if (tool == nullptr) {
-    printf("HAPPY TUESDAY: 6\n");
     usage(argv[0]);
     return 1;
   }
-  printf("HAPPY TUESDAY: 7...\n");
 #ifdef CLIVER
- if(starting_arg==1)
- printf("HAPPY TUESDAY: starting_arg==1\n");//, argv[starting_arg]);
- else if (starting_arg==2)
- printf("HAPPY TUESDAY: starting_arg==2\n");
- else printf("HAPPY TUESDAY: starting_arg > 2\n");
  return !tool(argc-starting_arg-1, argv+starting_arg+1);
-
 #else
-  printf("HAPPY TUESDAY: shouldn't get here\n");
+  //We shouldn't actually compile in this case, as we no longer support the old
+  //client.  Need to go back and add support for the old client.
   std::vector<std::string> args;
   for (int i = starting_arg; i < argc; i++) {
     args.push_back(argv[i]);

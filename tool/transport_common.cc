@@ -295,24 +295,26 @@ bool TransferData(SSL *ssl, int sock) {
       ssize_t n;
       do {
 #ifdef CLIVER
-        printf("HAPPY TUESDAY: TransferData calling ktest_raw_read_stdin\n");
         n = ktest_raw_read_stdin(buffer, sizeof(buffer));
 #else
         n = read(0, buffer, sizeof(buffer));
 #endif
       } while (n == -1 && errno == EINTR);
-      printf("HAPPY TUESDAY: TransferData reading stdin finshed\n");
 
       if (n == 0) {
         FD_CLR(0, &read_fds);
         stdin_open = false;
 #if !defined(OPENSSL_WINDOWS)
-        printf("HAPPY TUESDAY: shutdown\n");
         shutdown(sock, SHUT_WR);
 #else
         shutdown(sock, SD_SEND);
 #endif
-        continue;
+// We do not care about verifying things after shutdown.  So we return here.
+// The origional continued, and did a SSL_read to ensure that there was no
+// data buffered at the SSL layer from the server.  Because we are only concerned
+// with verifying the client's messages, we do not care to record any outstanding
+// network activity from the server.
+        return true;
       } else if (n < 0) {
         perror("read from stdin");
         return false;
@@ -339,7 +341,6 @@ bool TransferData(SSL *ssl, int sock) {
 
     if (FD_ISSET(sock, &read_fds)) {
       uint8_t buffer[512];
-      printf("HAPPY TUESDAY: SSL_read\n");
       int ssl_ret = SSL_read(ssl, buffer, sizeof(buffer));
 
       if (ssl_ret < 0) {
@@ -351,7 +352,6 @@ bool TransferData(SSL *ssl, int sock) {
         ERR_print_errors_cb(PrintErrorCallback, stderr);
         return false;
       } else if (ssl_ret == 0) {
-        printf("HAPPY TUESDAY: 0 length SSL_read, returning true\n");
         return true;
       }
       ssize_t n;

@@ -265,22 +265,17 @@ void ssl_write_buffer_set_len(SSL *ssl, size_t len) {
 }
 
 static int tls_write_buffer_flush(SSL *ssl) {
- printf("HAPPY TUESDAY: tls_write_buffer_flush\n");
   SSL3_BUFFER *buf = &ssl->s3->write_buffer;
 
   while (buf->len > 0) {
-    printf("HAPPY TUESDAY: tls_write_buffer_flush while start\n");
     ssl->rwstate = SSL_WRITING;
     int ret = BIO_write(ssl->wbio, buf->buf + buf->offset, buf->len);
-    printf("HAPPY TUESDAY: tls_write_buffer_flush return BIO_write\n");
     if (ret <= 0) {
       return ret;
     }
     ssl->rwstate = SSL_NOTHING;
     consume_buffer(buf, (size_t)ret);
-    printf("HAPPY TUESDAY: tls_write_buffer_flush consume_buffer returned\n");
   }
-  printf("HAPPY TUESDAY: tls_write_buffer_flush passed while loop\n");
   ssl_write_buffer_clear(ssl);
   return 1;
 }
@@ -315,7 +310,6 @@ int ssl_write_buffer_flush(SSL *ssl) {
   if (SSL_IS_DTLS(ssl)) {
     return dtls_write_buffer_flush(ssl);
   } else {
-    printf("HAPPY TUESDAY: ssl_write_buffer_flush calling tls_write_buffer_flush\n");
     return tls_write_buffer_flush(ssl);
   }
 }

@@ -24,9 +24,13 @@ bool InitSocketLibrary();
 // Connect sets |*out_sock| to be a socket connected to the destination given
 // in |hostname_and_port|, which should be of the form "www.example.com:123".
 // It returns true on success and false otherwise.
-bool Connect(int *out_sock, const std::string &hostname_and_port);
+//We need to go back and provide support for this connect if we choose not to
+//change the origional client (when we add it back in)
+//bool Connect(int *out_sock, const std::string &hostname_and_port);
 
+#ifdef CLIVER
 bool Connect(int *out_sock, char* hostname_and_port);
+#endif
 
 // Accept sets |*out_sock| to be a socket connected to the port given
 // in |port|, which should be of the form "123".
