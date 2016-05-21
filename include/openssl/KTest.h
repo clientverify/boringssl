@@ -96,8 +96,6 @@ extern "C" {
 
   void ktest_freeaddrinfo(struct addrinfo *res);
   int ktest_fcntl(int socket, int flags, int not_sure);
-  int ktest_BN_rand_range(BIGNUM *private_key, const BIGNUM *order);
-  void noop_make_priv_key_symbolic(BIGNUM *bn);
 
 int bssl_EC_POINT_mul( const EC_GROUP *group, EC_POINT *r,
     const BIGNUM *n, const EC_POINT *q, const BIGNUM *m, BN_CTX *ctx);

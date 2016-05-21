@@ -62,8 +62,6 @@
 #include <openssl/mem.h>
 
 
-#include <stdio.h>
-
 uint8_t *HMAC(const EVP_MD *evp_md, const void *key, size_t key_len,
               const uint8_t *data, size_t data_len, uint8_t *out,
               unsigned int *out_len) {
@@ -167,7 +165,6 @@ int HMAC_Init_ex(HMAC_CTX *ctx, const void *key, size_t key_len,
 }
 
 int HMAC_Update(HMAC_CTX *ctx, const uint8_t *data, size_t data_len) {
-  if(data == NULL) printf("HAPPY TUESDAY HMAC_Update data == NULL\n");
   return EVP_DigestUpdate(&ctx->md_ctx, data, data_len);
 }
 

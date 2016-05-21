@@ -66,8 +66,6 @@
 
 #include "internal.h"
 
-#include <stdio.h>
-
 #if defined(NDEBUG)
 #define CHECK(x) (void) (x)
 #else
@@ -161,7 +159,6 @@ static void sha256_init(EVP_MD_CTX *ctx) {
 }
 
 static void sha256_update(EVP_MD_CTX *ctx, const void *data, size_t count) {
-  if(data == NULL) printf("HAPPY TUESDAY sha256_update called with null data\n");
   CHECK(SHA256_Update(ctx->md_data, data, count));
 }
 

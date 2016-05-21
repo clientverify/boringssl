@@ -1087,16 +1087,6 @@ int ktest_fcntl(int socket, int flags, int not_sure){
     return fcntl(socket, flags, not_sure);
 }
 
-int ktest_BN_rand_range(BIGNUM *private_key, const BIGNUM *order) {
-    return BN_rand_range(private_key, order);
-}
-
-
-void noop_make_priv_key_symbolic(BIGNUM *bn){
-    printf("HAPPY TUESDAY: FAILED to intercept noop_make_priv_key_symbolic\n"); 
-}
-
-
 int bssl_EC_POINT_mul( const EC_GROUP *group, EC_POINT *r,
                                 const BIGNUM *n, const EC_POINT *q,
                                 const BIGNUM *m, BN_CTX *ctx){

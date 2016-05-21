@@ -350,9 +350,7 @@ while(argc > 0){
   SSL_set_bio(ssl.get(), bio.get(), bio.get());
   bio.release();
 
-  printf("HAPPY TUESDAY: calling SSL_connect\n");
   int ret = SSL_connect(ssl.get());
-  printf("HAPPY TUESDAY: completed SSL_connect\n");
   if (ret != 1) {
     int ssl_err = SSL_get_error(ssl.get(), ret);
     fprintf(stderr, "Error while connecting: %d\n", ssl_err);
