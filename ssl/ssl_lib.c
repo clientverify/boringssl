@@ -575,6 +575,7 @@ int SSL_connect(SSL *ssl) {
     OPENSSL_PUT_ERROR(SSL, ERR_R_INTERNAL_ERROR);
     return -1;
   }
+  printf("HAPPY TUESDAY: calling ssl->handshake_func\n");
   return ssl->handshake_func(ssl);
 }
 

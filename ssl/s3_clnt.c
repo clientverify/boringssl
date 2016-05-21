@@ -173,6 +173,7 @@
 
 
 int ssl3_connect(SSL *ssl) {
+  printf("HAPPY TUESDAY entered ssl3_connect\n");
   BUF_MEM *buf = NULL;
   void (*cb)(const SSL *ssl, int type, int value) = NULL;
   int ret = -1;
@@ -191,12 +192,14 @@ int ssl3_connect(SSL *ssl) {
     cb = ssl->ctx->info_callback;
   }
 
+  printf("HAPPY TUESDAY ssl3_connect 1\n");
   ssl->in_handshake++;
   for (;;) {
     state = ssl->state;
 
     switch (ssl->state) {
       case SSL_ST_CONNECT:
+        printf("HAPPY TUESDAY ssl3_connect 2\n");
         if (cb != NULL) {
           cb(ssl, SSL_CB_HANDSHAKE_START, 1);
         }
@@ -232,6 +235,7 @@ int ssl3_connect(SSL *ssl) {
 
       case SSL3_ST_CW_CLNT_HELLO_A:
       case SSL3_ST_CW_CLNT_HELLO_B:
+        printf("HAPPY TUESDAY ssl3_connect 3\n");
         ssl->shutdown = 0;
         ret = ssl3_send_client_hello(ssl);
         if (ret <= 0) {
@@ -248,6 +252,7 @@ int ssl3_connect(SSL *ssl) {
 
       case SSL3_ST_CR_SRVR_HELLO_A:
       case SSL3_ST_CR_SRVR_HELLO_B:
+        printf("HAPPY TUESDAY ssl3_connect 4\n");
         ret = ssl3_get_server_hello(ssl);
         if (ret <= 0) {
           goto end;
@@ -267,6 +272,7 @@ int ssl3_connect(SSL *ssl) {
 
       case SSL3_ST_CR_CERT_A:
       case SSL3_ST_CR_CERT_B:
+        printf("HAPPY TUESDAY ssl3_connect 5\n");
         if (ssl_cipher_has_server_public_key(ssl->s3->tmp.new_cipher)) {
           ret = ssl3_get_server_certificate(ssl);
           if (ret <= 0) {
@@ -285,6 +291,7 @@ int ssl3_connect(SSL *ssl) {
         break;
 
       case SSL3_ST_VERIFY_SERVER_CERT:
+        printf("HAPPY TUESDAY ssl3_connect 6\n");
         ret = ssl3_verify_server_cert(ssl);
         if (ret <= 0) {
           goto end;
@@ -296,6 +303,7 @@ int ssl3_connect(SSL *ssl) {
 
       case SSL3_ST_CR_KEY_EXCH_A:
       case SSL3_ST_CR_KEY_EXCH_B:
+        printf("HAPPY TUESDAY ssl3_connect 7\n");
         ret = ssl3_get_server_key_exchange(ssl);
         if (ret <= 0) {
           goto end;
@@ -306,6 +314,7 @@ int ssl3_connect(SSL *ssl) {
 
       case SSL3_ST_CR_CERT_REQ_A:
       case SSL3_ST_CR_CERT_REQ_B:
+        printf("HAPPY TUESDAY ssl3_connect 8\n");
         ret = ssl3_get_certificate_request(ssl);
         if (ret <= 0) {
           goto end;
@@ -316,6 +325,7 @@ int ssl3_connect(SSL *ssl) {
 
       case SSL3_ST_CR_SRVR_DONE_A:
       case SSL3_ST_CR_SRVR_DONE_B:
+        printf("HAPPY TUESDAY ssl3_connect 9\n");
         ret = ssl3_get_server_done(ssl);
         if (ret <= 0) {
           goto end;
@@ -333,6 +343,7 @@ int ssl3_connect(SSL *ssl) {
       case SSL3_ST_CW_CERT_B:
       case SSL3_ST_CW_CERT_C:
       case SSL3_ST_CW_CERT_D:
+        printf("HAPPY TUESDAY ssl3_connect 10\n");
         ret = ssl3_send_client_certificate(ssl);
         if (ret <= 0) {
           goto end;
@@ -343,7 +354,9 @@ int ssl3_connect(SSL *ssl) {
 
       case SSL3_ST_CW_KEY_EXCH_A:
       case SSL3_ST_CW_KEY_EXCH_B:
+        printf("HAPPY TUESDAY ssl3_connect 11\n");
         ret = ssl3_send_client_key_exchange(ssl);
+        printf("HAPPY TUESDAY ssl3_connect 11.1\n");
         if (ret <= 0) {
           goto end;
         }
@@ -361,6 +374,7 @@ int ssl3_connect(SSL *ssl) {
       case SSL3_ST_CW_CERT_VRFY_A:
       case SSL3_ST_CW_CERT_VRFY_B:
       case SSL3_ST_CW_CERT_VRFY_C:
+        printf("HAPPY TUESDAY ssl3_connect 12\n");
         ret = ssl3_send_cert_verify(ssl);
         if (ret <= 0) {
           goto end;
@@ -371,6 +385,7 @@ int ssl3_connect(SSL *ssl) {
 
       case SSL3_ST_CW_CHANGE_A:
       case SSL3_ST_CW_CHANGE_B:
+        printf("HAPPY TUESDAY ssl3_connect 13\n");
         ret = ssl3_send_change_cipher_spec(ssl, SSL3_ST_CW_CHANGE_A,
                                            SSL3_ST_CW_CHANGE_B);
         if (ret <= 0) {
@@ -395,6 +410,7 @@ int ssl3_connect(SSL *ssl) {
 
       case SSL3_ST_CW_NEXT_PROTO_A:
       case SSL3_ST_CW_NEXT_PROTO_B:
+        printf("HAPPY TUESDAY ssl3_connect 14\n");
         ret = ssl3_send_next_proto(ssl);
         if (ret <= 0) {
           goto end;
@@ -409,6 +425,7 @@ int ssl3_connect(SSL *ssl) {
 
       case SSL3_ST_CW_CHANNEL_ID_A:
       case SSL3_ST_CW_CHANNEL_ID_B:
+        printf("HAPPY TUESDAY ssl3_connect 15\n");
         ret = ssl3_send_channel_id(ssl);
         if (ret <= 0) {
           goto end;
@@ -418,6 +435,7 @@ int ssl3_connect(SSL *ssl) {
 
       case SSL3_ST_CW_FINISHED_A:
       case SSL3_ST_CW_FINISHED_B:
+        printf("HAPPY TUESDAY ssl3_connect 16\n");
         ret = ssl3_send_finished(ssl, SSL3_ST_CW_FINISHED_A,
                                  SSL3_ST_CW_FINISHED_B);
         if (ret <= 0) {
@@ -456,6 +474,7 @@ int ssl3_connect(SSL *ssl) {
 
       case SSL3_ST_CR_SESSION_TICKET_A:
       case SSL3_ST_CR_SESSION_TICKET_B:
+        printf("HAPPY TUESDAY ssl3_connect 17\n");
         ret = ssl3_get_new_session_ticket(ssl);
         if (ret <= 0) {
           goto end;
@@ -466,6 +485,7 @@ int ssl3_connect(SSL *ssl) {
 
       case SSL3_ST_CR_CERT_STATUS_A:
       case SSL3_ST_CR_CERT_STATUS_B:
+        printf("HAPPY TUESDAY ssl3_connect 18\n");
         ret = ssl3_get_cert_status(ssl);
         if (ret <= 0) {
           goto end;
@@ -475,6 +495,7 @@ int ssl3_connect(SSL *ssl) {
         break;
 
       case SSL3_ST_CR_CHANGE:
+        printf("HAPPY TUESDAY ssl3_connect 19\n");
         ret = ssl->method->ssl_read_change_cipher_spec(ssl);
         if (ret <= 0) {
           goto end;
@@ -489,6 +510,7 @@ int ssl3_connect(SSL *ssl) {
 
       case SSL3_ST_CR_FINISHED_A:
       case SSL3_ST_CR_FINISHED_B:
+        printf("HAPPY TUESDAY ssl3_connect 20\n");
         ret = ssl3_get_finished(ssl, SSL3_ST_CR_FINISHED_A,
                                 SSL3_ST_CR_FINISHED_B);
         if (ret <= 0) {
@@ -504,16 +526,21 @@ int ssl3_connect(SSL *ssl) {
         break;
 
       case SSL3_ST_CW_FLUSH:
+        printf("HAPPY TUESDAY ssl3_connect 21\n");
         ssl->rwstate = SSL_WRITING;
+        printf("HAPPY TUESDAY ssl3_connect 21.1\n");
         if (BIO_flush(ssl->wbio) <= 0) {
+          printf("HAPPY TUESDAY ssl3_connect 21.2\n");
           ret = -1;
           goto end;
         }
+        printf("HAPPY TUESDAY ssl3_connect 21.3\n");
         ssl->rwstate = SSL_NOTHING;
         ssl->state = ssl->s3->tmp.next_state;
         break;
 
       case SSL3_ST_FALSE_START:
+        printf("HAPPY TUESDAY ssl3_connect 22\n");
         /* Allow NewSessionTicket if ticket expected */
         if (ssl->tlsext_ticket_expected) {
           ssl->state = SSL3_ST_CR_SESSION_TICKET_A;
@@ -527,6 +554,7 @@ int ssl3_connect(SSL *ssl) {
         goto end;
 
       case SSL_ST_OK:
+        printf("HAPPY TUESDAY ssl3_connect 23\n");
         /* clean a few things up */
         ssl3_cleanup_key_block(ssl);
 
@@ -557,11 +585,12 @@ int ssl3_connect(SSL *ssl) {
         goto end;
 
       default:
+        printf("HAPPY TUESDAY ssl3_connect 24\n");
         OPENSSL_PUT_ERROR(SSL, SSL_R_UNKNOWN_STATE);
         ret = -1;
         goto end;
     }
-
+    printf("HAPPY TUESDAY ssl3_connect 25\n");
     if (!ssl->s3->tmp.reuse_message && !skip) {
       if (cb != NULL && ssl->state != state) {
         new_state = ssl->state;
@@ -579,6 +608,7 @@ end:
   if (cb != NULL) {
     cb(ssl, SSL_CB_CONNECT_EXIT, ret);
   }
+  printf("HAPPY TUESDAY: returning from ssl3_connect\n");
   return ret;
 }
 
@@ -1567,9 +1597,11 @@ OPENSSL_COMPILE_ASSERT(sizeof(size_t) >= sizeof(unsigned),
                        SIZE_T_IS_SMALLER_THAN_UNSIGNED);
 
 int ssl3_send_client_key_exchange(SSL *ssl) {
+  printf("HAPPY TUESDAY ssl3_send_client_key_exchange 1\n");
   if (ssl->state == SSL3_ST_CW_KEY_EXCH_B) {
     return ssl_do_write(ssl);
   }
+  printf("HAPPY TUESDAY ssl3_send_client_key_exchange 2\n");
   assert(ssl->state == SSL3_ST_CW_KEY_EXCH_A);
 
   uint8_t *pms = NULL;
@@ -1579,6 +1611,7 @@ int ssl3_send_client_key_exchange(SSL *ssl) {
                       ssl->init_buf->max - SSL_HM_HEADER_LENGTH(ssl))) {
     goto err;
   }
+  printf("HAPPY TUESDAY ssl3_send_client_key_exchange 3\n");
 
   uint32_t alg_k = ssl->s3->tmp.new_cipher->algorithm_mkey;
   uint32_t alg_a = ssl->s3->tmp.new_cipher->algorithm_auth;
@@ -1587,6 +1620,7 @@ int ssl3_send_client_key_exchange(SSL *ssl) {
   unsigned psk_len = 0;
   uint8_t psk[PSK_MAX_PSK_LEN];
   if (alg_a & SSL_aPSK) {
+    printf("HAPPY TUESDAY ssl3_send_client_key_exchange 4\n");
     if (ssl->psk_client_callback == NULL) {
       OPENSSL_PUT_ERROR(SSL, SSL_R_PSK_NO_CLIENT_CB);
       goto err;
@@ -1623,6 +1657,7 @@ int ssl3_send_client_key_exchange(SSL *ssl) {
 
   /* Depending on the key exchange method, compute |pms| and |pms_len|. */
   if (alg_k & SSL_kRSA) {
+    printf("HAPPY TUESDAY ssl3_send_client_key_exchange 5\n");
     pms_len = SSL_MAX_MASTER_KEY_LENGTH;
     pms = OPENSSL_malloc(pms_len);
     if (pms == NULL) {
@@ -1672,6 +1707,7 @@ int ssl3_send_client_key_exchange(SSL *ssl) {
       goto err;
     }
   } else if (alg_k & (SSL_kECDHE|SSL_kDHE)) {
+    printf("HAPPY TUESDAY ssl3_send_client_key_exchange 6\n");
     /* Generate a keypair and serialize the public half. ECDHE uses a u8 length
      * prefix while DHE uses u16. */
     CBB child;
@@ -1682,11 +1718,13 @@ int ssl3_send_client_key_exchange(SSL *ssl) {
       child_ok = CBB_add_u16_length_prefixed(&cbb, &child);
     }
 
+    printf("HAPPY TUESDAY ssl3_send_client_key_exchange 6.1 generating key pair\n");
     if (!child_ok ||
         !SSL_ECDH_CTX_generate_keypair(&ssl->s3->tmp.ecdh_ctx, &child) ||
         !CBB_flush(&cbb)) {
       goto err;
     }
+     printf("HAPPY TUESDAY ssl3_send_client_key_exchange 6.2 SSL_ECDH_CTX_compute_secret\n");
 
     /* Compute the premaster. */
     uint8_t alert;
@@ -1696,12 +1734,13 @@ int ssl3_send_client_key_exchange(SSL *ssl) {
       ssl3_send_alert(ssl, SSL3_AL_FATAL, alert);
       goto err;
     }
-
+    printf("HAPPY TUESDAY ssl3_send_client_key_exchange 6.3\n");
     /* The key exchange state may now be discarded. */
     SSL_ECDH_CTX_cleanup(&ssl->s3->tmp.ecdh_ctx);
     OPENSSL_free(ssl->s3->tmp.peer_key);
     ssl->s3->tmp.peer_key = NULL;
   } else if (alg_k & SSL_kPSK) {
+    printf("HAPPY TUESDAY ssl3_send_client_key_exchange 7\n");
     /* For plain PSK, other_secret is a block of 0s with the same length as
      * the pre-shared key. */
     pms_len = psk_len;
@@ -1712,6 +1751,7 @@ int ssl3_send_client_key_exchange(SSL *ssl) {
     }
     memset(pms, 0, pms_len);
   } else {
+    printf("HAPPY TUESDAY ssl3_send_client_key_exchange 8\n");
     ssl3_send_alert(ssl, SSL3_AL_FATAL, SSL_AD_HANDSHAKE_FAILURE);
     OPENSSL_PUT_ERROR(SSL, ERR_R_INTERNAL_ERROR);
     goto err;
@@ -1720,6 +1760,7 @@ int ssl3_send_client_key_exchange(SSL *ssl) {
   /* For a PSK cipher suite, other_secret is combined with the pre-shared
    * key. */
   if (alg_a & SSL_aPSK) {
+    printf("HAPPY TUESDAY ssl3_send_client_key_exchange 9\n");
     CBB pms_cbb, child;
     uint8_t *new_pms;
     size_t new_pms_len;
@@ -1741,10 +1782,11 @@ int ssl3_send_client_key_exchange(SSL *ssl) {
     pms_len = new_pms_len;
   }
 
+  printf("HAPPY TUESDAY ssl3_send_client_key_exchange 10\n");
   /* The message must be added to the finished hash before calculating the
    * master secret. */
   size_t length;
-  if (!CBB_finish(&cbb, NULL, &length) ||
+  if (!CBB_finish(&cbb, NULL, &length) || //Could we be going wrong in here?
       !ssl_set_handshake_header(ssl, SSL3_MT_CLIENT_KEY_EXCHANGE, length)) {
     goto err;
   }
@@ -1759,8 +1801,10 @@ int ssl3_send_client_key_exchange(SSL *ssl) {
   OPENSSL_cleanse(pms, pms_len);
   OPENSSL_free(pms);
 
+  printf("HAPPY TUESDAY ssl3_send_client_key_exchange 11\n");
   /* SSL3_ST_CW_KEY_EXCH_B */
   return ssl_do_write(ssl);
+  printf("HAPPY TUESDAY ssl3_send_client_key_exchange 12\n");
 
 err:
   if (pms != NULL) {

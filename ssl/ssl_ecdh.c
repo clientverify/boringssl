@@ -28,6 +28,20 @@
 #include "internal.h"
 
 
+#ifdef CLIVER
+#include <openssl/KTest.h>
+#endif
+
+struct ec_point_st {
+  const EC_METHOD *meth;
+
+    BIGNUM X;
+      BIGNUM Y;
+        BIGNUM Z; /* Jacobian projective coordinates:
+                     * (X, Y, Z)  represents  (X/Z^2, Y/Z^3)  if  Z != 0 */
+                       int Z_is_one; /* enable optimized point arithmetics for special case */
+                       } /* EC_POINT */;
+
 /* |EC_POINT| implementation. */
 
 static void ssl_ec_point_cleanup(SSL_ECDH_CTX *ctx) {
@@ -56,27 +70,55 @@ static int ssl_ec_point_generate_keypair(SSL_ECDH_CTX *ctx, CBB *out) {
   if (group == NULL) {
     goto err;
   }
-
   /* Generate a private key. */
   const BIGNUM *order = EC_GROUP_get0_order(group);
-  do {
+  printf("HAPPY TUESDAY ssl_ec_point_generate_keypair 7\n");
+  do { // This is where we split into two states.  BN_rand_range() generates a
+       // cryptographically strong pseudo-random number rnd in the range
+       // 0 <= rnd < range.
+//#ifdef CLIVER
+//   if (!ktest_BN_rand_range(private_key, order)) {
+//#else
     if (!BN_rand_range(private_key, order)) {
+//#endif
       goto err;
-    }
+    } else printf("HAPPY TUESDAY ssl_ec_point_generate_keypair 7.0\n");
   } while (BN_is_zero(private_key));
 
   /* Compute the corresponding public key and serialize it. */
   public_key = EC_POINT_new(group);
-  if (public_key == NULL ||
+/*  if (public_key == NULL ||
       !EC_POINT_mul(group, public_key, private_key, NULL, NULL, bn_ctx) ||
       !EC_POINT_point2cbb(out, group, public_key, POINT_CONVERSION_UNCOMPRESSED,
                           bn_ctx)) {
     goto err;
   }
+*/
+  if (public_key == NULL )goto err;
+  printf("HAPPY TUESDAY ssl_ec_point_generate_keypair 7.1\n");
+
+// This is where we get stuck.  I need to figure out 
+// EC_POINT_mul calculates the value generator * n + q * m and stores the result
+// in r. The value n may be NULL in which case the result is just q * m
+#ifdef CLIVER
+  if (!bssl_EC_POINT_mul(group, public_key, private_key, NULL, NULL, bn_ctx)) goto err;
+#else
+  if (!EC_POINT_mul(group, public_key, private_key, NULL, NULL, bn_ctx)) goto err; //turn private key symb after this func
+#endif
+
+//  noop_make_priv_key_symbolic(private_key);
+//  noop_make_priv_key_symbolic(&public_key->X);
+//  noop_make_priv_key_symbolic(&public_key->Y);
+//  noop_make_priv_key_symbolic(&public_key->Z);
+  printf("HAPPY TUESDAY ssl_ec_point_generate_keypair 7.2\n");
+  if (!EC_POINT_point2cbb(out, group, public_key, POINT_CONVERSION_UNCOMPRESSED,
+                          bn_ctx)) goto err;
+  printf("HAPPY TUESDAY ssl_ec_point_generate_keypair 7.3\n");
 
   ret = 1;
 
 err:
+  printf("HAPPY TUESDAY ssl_ec_point_generate_keypair error!!!!\n");
   EC_GROUP_free(group);
   EC_POINT_free(public_key);
   BN_CTX_end(bn_ctx);
@@ -87,6 +129,7 @@ err:
 int ssl_ec_point_compute_secret(SSL_ECDH_CTX *ctx, uint8_t **out_secret,
                                 size_t *out_secret_len, uint8_t *out_alert,
                                 const uint8_t *peer_key, size_t peer_key_len) {
+  printf("HAPPY TUESDAY: entered ssl_ec_point_compute_secret\n");
   BIGNUM *private_key = (BIGNUM *)ctx->data;
   assert(private_key != NULL);
   *out_alert = SSL_AD_INTERNAL_ERROR;

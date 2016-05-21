@@ -184,6 +184,7 @@ static int tls1_P_hash(uint8_t *out, size_t out_len, const EVP_MD *md,
   for (;;) {
     unsigned len;
     uint8_t hmac[EVP_MAX_MD_SIZE];
+
     if (!HMAC_CTX_copy_ex(&ctx, &ctx_init) ||
         !HMAC_Update(&ctx, A1, A1_len) ||
         /* Save a copy of |ctx| to compute the next A1 value below. */
@@ -263,8 +264,10 @@ static int tls1_prf(const SSL *ssl, uint8_t *out, size_t out_len,
 }
 
 int tls1_change_cipher_state(SSL *ssl, int which) {
+  printf("HAPPY TUESDAY: entered tls1_change_cipher_state\n");
   /* Ensure the key block is set up. */
   if (!tls1_setup_key_block(ssl)) {
+    printf("HAPPY TUESDAY: leaving tls1_change_cipher_state\n");
     return 0;
   }
 
@@ -313,6 +316,7 @@ int tls1_change_cipher_state(SSL *ssl, int which) {
                        ssl3_protocol_version(ssl), ssl->s3->tmp.new_cipher, key,
                        key_len, mac_secret, mac_secret_len, iv, iv_len);
   if (aead_ctx == NULL) {
+    printf("HAPPY TUESDAY: leaving tls1_change_cipher_state\n"); 
     return 0;
   }
 
@@ -321,6 +325,7 @@ int tls1_change_cipher_state(SSL *ssl, int which) {
   } else {
     ssl_set_write_state(ssl, aead_ctx);
   }
+  printf("HAPPY TUESDAY: leaving tls1_change_cipher_state\n"); 
   return 1;
 }
 
@@ -447,17 +452,19 @@ err:
  * underlying digests so can be called multiple times and prior to the final
  * update etc. */
 int tls1_handshake_digest(SSL *ssl, uint8_t *out, size_t out_len) {
+  printf("HAPPY TUESDAY: in tls1_handshake_digest 1\n");
   size_t md5_len = 0;
   if (EVP_MD_CTX_md(&ssl->s3->handshake_md5) != NULL &&
       !append_digest(&ssl->s3->handshake_md5, out, &md5_len, out_len)) {
     return -1;
   }
-
+  printf("HAPPY TUESDAY: in tls1_handshake_digest 2\n");
   size_t len;
   if (!append_digest(&ssl->s3->handshake_hash, out + md5_len, &len,
                      out_len - md5_len)) {
     return -1;
   }
+  printf("HAPPY TUESDAY: in tls1_handshake_digest 3\n");
 
   return (int)(md5_len + len);
 }
@@ -494,6 +501,7 @@ static int tls1_final_finish_mac(SSL *ssl, int from_server, uint8_t *out) {
 int tls1_generate_master_secret(SSL *ssl, uint8_t *out,
                                 const uint8_t *premaster,
                                 size_t premaster_len) {
+  printf("HAPPY TUESDAY entered tls1_generate_master_secret\n");
   if (ssl->s3->tmp.extended_master_secret) {
     uint8_t digests[EVP_MAX_MD_SIZE];
     int digests_len = tls1_handshake_digest(ssl, digests, sizeof(digests));
@@ -505,6 +513,7 @@ int tls1_generate_master_secret(SSL *ssl, uint8_t *out,
                                   TLS_MD_EXTENDED_MASTER_SECRET_CONST,
                                   TLS_MD_EXTENDED_MASTER_SECRET_CONST_SIZE,
                                   digests, digests_len, NULL, 0)) {
+      printf("HAPPY TUESDAY returning from  tls1_generate_master_secret\n");
       return 0;
     }
   } else {
@@ -513,12 +522,14 @@ int tls1_generate_master_secret(SSL *ssl, uint8_t *out,
                                   TLS_MD_MASTER_SECRET_CONST_SIZE,
                                   ssl->s3->client_random, SSL3_RANDOM_SIZE,
                                   ssl->s3->server_random, SSL3_RANDOM_SIZE)) {
+      printf("HAPPY TUESDAY returning from  tls1_generate_master_secret\n");
       return 0;
     }
   }
 #ifdef CLIVER
   ktest_master_secret(ssl->session->master_key, SSL3_MASTER_SECRET_SIZE);
 #endif
+  printf("HAPPY TUESDAY returning from  tls1_generate_master_secret\n");
   return SSL3_MASTER_SECRET_SIZE;
 }
 
