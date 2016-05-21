@@ -280,7 +280,8 @@ bool TransferData(SSL *ssl, int sock) {
 
     int ret;
 #ifdef CLIVER
-    ret = ktest_select(sock + 1, &read_fds, NULL, NULL, NULL);
+    printf("HAPPY TUESDAY TransferData ktest_select read\n");
+    ret = bssl_stdin_ktest_select(sock + 1, &read_fds, NULL, NULL, NULL);
 #else
     ret = select(sock + 1, &read_fds, NULL, NULL, NULL);
 #endif

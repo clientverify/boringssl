@@ -70,6 +70,8 @@ extern "C" {
   int ktest_connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen);
   int ktest_select(int nfds, fd_set *readfds, fd_set *writefds,
 		  fd_set *exceptfds, struct timeval *timeout);
+  int bssl_stdin_ktest_select(int nfds, fd_set *readfds, fd_set *writefds,
+            fd_set *exceptfds, struct timeval *timeout);
   ssize_t ktest_writesocket(int fd, const void *buf, size_t count);
   ssize_t ktest_readsocket(int fd, void *buf, size_t count);
 
