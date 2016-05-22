@@ -55,12 +55,10 @@ static const struct argument kArguments[] = {
      "-server-name", kOptionalArgument,
      "The server name to advertise",
     },
-#ifndef CLIVER
     {
      "-select-next-proto", kOptionalArgument,
      "An NPN protocol to select if the server supports NPN",
     },
-#endif
     {
      "-alpn-protos", kOptionalArgument,
      "A comma-separated list of ALPN protocols to advertise",
@@ -140,6 +138,7 @@ static bool VersionFromString(uint16_t *out_version,
   }
   return false;
 }
+#endif
 
 static int NextProtoSelectCallback(SSL* ssl, uint8_t** out, uint8_t* outlen,
                                    const uint8_t* in, unsigned inlen, void* arg) {
@@ -147,7 +146,6 @@ static int NextProtoSelectCallback(SSL* ssl, uint8_t** out, uint8_t* outlen,
   *outlen = strlen(reinterpret_cast<const char *>(arg));
   return SSL_TLSEXT_ERR_OK;
 }
-#endif
 
 static FILE *g_keylog_file = nullptr;
 
@@ -165,7 +163,7 @@ bool Client(int argc, char **argv) {
 
   //Variables
   char * cipher_string = NULL, *kfile = NULL, *connect_str = NULL,
-    *server_name = NULL;
+    *server_name = NULL, *npn_proto = NULL;
   std::vector<uint8_t> wire;
   bool ocsp_on = false, sig_cert_time = false;
   ScopedBIO bio;
@@ -213,6 +211,24 @@ while(argc > 0){
     if(argc < 2) break;
     argv++;
     argc--;
+
+  }
+  if (strcmp(*argv, "-select-next-proto") == 0) {
+    argv++;
+    argc--;
+    if(argc < 1) return fail();
+
+    npn_proto = *argv;
+
+    if (strlen(npn_proto) > 255) {
+      fprintf(stderr, "Bad NPN protocol: '%s'\n", npn_proto);
+      return false;
+    }
+
+    if(argc < 2) break;
+    argv++;
+    argc--;
+ 
 
   }
   if (strcmp(*argv, "-alpn-protos") == 0) {
@@ -320,6 +336,13 @@ while(argc > 0){
     fprintf(stderr, "Failed setting cipher list\n");
     return false;
   }
+
+  if(npn_proto != NULL){
+    // |SSL_CTX_set_next_proto_select_cb| is not const-correct.
+    SSL_CTX_set_next_proto_select_cb(ctx.get(), NextProtoSelectCallback,
+                                     npn_proto);
+  }
+
 
   if (wire.size() != 0 &&
     SSL_CTX_set_alpn_protos(ctx.get(), wire.data(), wire.size()) != 0) {

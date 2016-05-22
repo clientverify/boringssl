@@ -1416,7 +1416,11 @@ ssl_create_cipher_list(const SSL_PROTOCOL_METHOD *ssl_method,
    * CHACHA20 unless there is hardware support for fast and constant-time
    * AES_GCM. Of the two CHACHA20 variants, the new one is preferred over the
    * old one. */
+#ifdef CLIVER
+  if(1){ //Compiling with klee removes hardware support osx has.
+#else
   if (EVP_has_aes_hardware()) {
+#endif 
     ssl_cipher_apply_rule(0, ~0u, ~0u, SSL_AES256GCM, ~0u, 0, CIPHER_ADD, -1, 0,
                           &head, &tail);
     ssl_cipher_apply_rule(0, ~0u, ~0u, SSL_AES128GCM, ~0u, 0, CIPHER_ADD, -1, 0,
