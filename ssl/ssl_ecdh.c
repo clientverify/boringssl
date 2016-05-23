@@ -27,9 +27,11 @@
 
 #include "internal.h"
 
+#ifdef CLIVER
+#include <openssl/KTest.h>
+#endif
 
 /* |EC_POINT| implementation. */
-
 static void ssl_ec_point_cleanup(SSL_ECDH_CTX *ctx) {
   BIGNUM *private_key = (BIGNUM *)ctx->data;
   BN_clear_free(private_key);
@@ -56,10 +58,10 @@ static int ssl_ec_point_generate_keypair(SSL_ECDH_CTX *ctx, CBB *out) {
   if (group == NULL) {
     goto err;
   }
-
   /* Generate a private key. */
   const BIGNUM *order = EC_GROUP_get0_order(group);
-  do {
+  do { // BN_rand_range() generates a cryptographically strong pseudo-random
+       // number rnd in the range 0 <= rnd < range.
     if (!BN_rand_range(private_key, order)) {
       goto err;
     }
@@ -68,7 +70,11 @@ static int ssl_ec_point_generate_keypair(SSL_ECDH_CTX *ctx, CBB *out) {
   /* Compute the corresponding public key and serialize it. */
   public_key = EC_POINT_new(group);
   if (public_key == NULL ||
+#ifdef CLIVER
+      !bssl_EC_POINT_mul(group, public_key, private_key, NULL, NULL, bn_ctx) ||
+#else
       !EC_POINT_mul(group, public_key, private_key, NULL, NULL, bn_ctx) ||
+#endif
       !EC_POINT_point2cbb(out, group, public_key, POINT_CONVERSION_UNCOMPRESSED,
                           bn_ctx)) {
     goto err;

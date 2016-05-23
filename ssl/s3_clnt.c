@@ -561,7 +561,6 @@ int ssl3_connect(SSL *ssl) {
         ret = -1;
         goto end;
     }
-
     if (!ssl->s3->tmp.reuse_message && !skip) {
       if (cb != NULL && ssl->state != state) {
         new_state = ssl->state;
@@ -1696,7 +1695,6 @@ int ssl3_send_client_key_exchange(SSL *ssl) {
       ssl3_send_alert(ssl, SSL3_AL_FATAL, alert);
       goto err;
     }
-
     /* The key exchange state may now be discarded. */
     SSL_ECDH_CTX_cleanup(&ssl->s3->tmp.ecdh_ctx);
     OPENSSL_free(ssl->s3->tmp.peer_key);

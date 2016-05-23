@@ -184,6 +184,7 @@ static int tls1_P_hash(uint8_t *out, size_t out_len, const EVP_MD *md,
   for (;;) {
     unsigned len;
     uint8_t hmac[EVP_MAX_MD_SIZE];
+
     if (!HMAC_CTX_copy_ex(&ctx, &ctx_init) ||
         !HMAC_Update(&ctx, A1, A1_len) ||
         /* Save a copy of |ctx| to compute the next A1 value below. */
@@ -452,7 +453,6 @@ int tls1_handshake_digest(SSL *ssl, uint8_t *out, size_t out_len) {
       !append_digest(&ssl->s3->handshake_md5, out, &md5_len, out_len)) {
     return -1;
   }
-
   size_t len;
   if (!append_digest(&ssl->s3->handshake_hash, out + md5_len, &len,
                      out_len - md5_len)) {

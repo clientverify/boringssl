@@ -16,6 +16,9 @@
 #include <time.h>
 #include <netdb.h>
 
+#include <openssl/ec.h>
+#include <openssl/bn.h>
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -67,6 +70,8 @@ extern "C" {
   int ktest_connect(int sockfd, const struct sockaddr *addr, socklen_t addrlen);
   int ktest_select(int nfds, fd_set *readfds, fd_set *writefds,
 		  fd_set *exceptfds, struct timeval *timeout);
+  int bssl_stdin_ktest_select(int nfds, fd_set *readfds, fd_set *writefds,
+            fd_set *exceptfds, struct timeval *timeout);
   ssize_t ktest_writesocket(int fd, const void *buf, size_t count);
   ssize_t ktest_readsocket(int fd, void *buf, size_t count);
 
@@ -91,6 +96,9 @@ extern "C" {
 
   void ktest_freeaddrinfo(struct addrinfo *res);
   int ktest_fcntl(int socket, int flags, int not_sure);
+
+int bssl_EC_POINT_mul( const EC_GROUP *group, EC_POINT *r,
+    const BIGNUM *n, const EC_POINT *q, const BIGNUM *m, BN_CTX *ctx);
 
 #ifdef __cplusplus
 }

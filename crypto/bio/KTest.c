@@ -582,9 +582,9 @@ int ktest_select(int nfds, fd_set *readfds, fd_set *writefds,
     unsigned int i, recorded_nfds;
 
     FD_ZERO(&in_readfds);  // input to select
-    if(writefds != NULL) FD_ZERO(&in_writefds); // input to select
+    if(writefds != NULL){ FD_ZERO(&in_writefds);} // input to select
     FD_ZERO(&out_readfds); // output of select
-    if(writefds != NULL) FD_ZERO(&out_writefds);// output of select
+    if(writefds != NULL){ FD_ZERO(&out_writefds);}// output of select
 
     tmp = strtok(recorded_select, " ");
     assert(strcmp(tmp, "sockfd") == 0);
@@ -664,7 +664,7 @@ int ktest_select(int nfds, fd_set *readfds, fd_set *writefds,
 
     // Copy recorded data to the final output fd_sets.
     FD_ZERO(readfds);
-    if(writefds != NULL) FD_ZERO(writefds);
+    if(writefds != NULL){ FD_ZERO(writefds);}
     int active_fd_count = 0;
     // stdin(0), stdout(1), stderr(2)
     for (i = 0; i < 3; i++) {
@@ -699,6 +699,16 @@ int ktest_select(int nfds, fd_set *readfds, fd_set *writefds,
       perror("ktest_select error - should never get here");
       exit(4);
   }
+}
+
+
+int bssl_stdin_ktest_select(int nfds, fd_set *readfds, fd_set *writefds,
+		  fd_set *exceptfds, struct timeval *timeout)
+{
+  assert(readfds != NULL);
+  assert(exceptfds == NULL);
+  assert(writefds == NULL);
+  return ktest_select(nfds, readfds, writefds, exceptfds, timeout);
 }
 
 ssize_t ktest_writesocket(int fd, const void *buf, size_t count)
@@ -1075,6 +1085,12 @@ void ktest_freeaddrinfo(struct addrinfo *res){
 //klee model will be executed instead.
 int ktest_fcntl(int socket, int flags, int not_sure){
     return fcntl(socket, flags, not_sure);
+}
+
+int bssl_EC_POINT_mul( const EC_GROUP *group, EC_POINT *r,
+                                const BIGNUM *n, const EC_POINT *q,
+                                const BIGNUM *m, BN_CTX *ctx){
+    return EC_POINT_mul( group, r, n, q, m, ctx);
 }
 
 
