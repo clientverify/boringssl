@@ -291,7 +291,7 @@ bool TransferData(SSL *ssl, int sock) {
     }
 
     if (FD_ISSET(0, &read_fds)) {
-      uint8_t buffer[512];
+      uint8_t buffer[16384]; // RFC 5246 says TLS Plaintext max size is 2^14
       ssize_t n;
       do {
 #ifdef CLIVER
