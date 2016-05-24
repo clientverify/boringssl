@@ -367,7 +367,7 @@ while(argc > 0){
   } else return fail();
 
   if(server_name != NULL) {
-    SSL_set_tlsext_host_name(ssl.get(), *argv);
+    SSL_set_tlsext_host_name(ssl.get(), server_name);
   }
 
   SSL_set_bio(ssl.get(), bio.get(), bio.get());
