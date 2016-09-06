@@ -340,7 +340,7 @@ bool TransferData(SSL *ssl, int sock) {
     }
 
     if (FD_ISSET(sock, &read_fds)) {
-      uint8_t buffer[512];
+      uint8_t buffer[16384];
       int ssl_ret = SSL_read(ssl, buffer, sizeof(buffer));
 
       if (ssl_ret < 0) {
