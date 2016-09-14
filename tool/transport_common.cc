@@ -273,6 +273,7 @@ bool TransferData(SSL *ssl, int sock) {
   }
 
   for (;;) {
+    FD_ZERO(&read_fds); // FIXME: Inserted by A. Chi, not in the original.
     if (stdin_open) {
       FD_SET(0, &read_fds);
     }
