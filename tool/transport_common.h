@@ -17,9 +17,11 @@
 
 #include <openssl/ssl.h>
 #include <string.h>
+#define false 0
+#define true 1
 
 // InitSocketLibrary calls the Windows socket init functions, if needed.
-bool InitSocketLibrary();
+int InitSocketLibrary();
 
 // Connect sets |*out_sock| to be a socket connected to the destination given
 // in |hostname_and_port|, which should be of the form "www.example.com:123".
@@ -29,21 +31,15 @@ bool InitSocketLibrary();
 //bool Connect(int *out_sock, const std::string &hostname_and_port);
 
 #ifdef CLIVER
-bool Connect(int *out_sock, char* hostname_and_port);
+int Connect(int *out_sock, char* hostname_and_port);
 #endif
+int PrintConnectionInfo(const SSL *ssl);
 
-// Accept sets |*out_sock| to be a socket connected to the port given
-// in |port|, which should be of the form "123".
-// It returns true on success and false otherwise.
-bool Accept(int *out_sock, const std::string &port);
-
-void PrintConnectionInfo(const SSL *ssl);
-
-bool SocketSetNonBlocking(int sock, bool is_non_blocking);
+int SocketSetNonBlocking(int sock, int is_non_blocking);
 
 int PrintErrorCallback(const char *str, size_t len, void *ctx);
 
-bool TransferData(SSL *ssl, int sock);
+int TransferData(SSL *ssl, int sock);
 
 
 #endif  /* !OPENSSL_HEADER_TOOL_TRANSPORT_COMMON_H */

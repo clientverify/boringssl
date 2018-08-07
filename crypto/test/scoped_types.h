@@ -18,7 +18,6 @@
 #include <stdint.h>
 #include <stdio.h>
 
-#include <memory>
 
 #include <openssl/aead.h>
 #include <openssl/asn1.h>
@@ -38,6 +37,7 @@
 #include <openssl/x509.h>
 
 
+#if 0
 template<typename T, void (*func)(T*)>
 struct OpenSSLDeleter {
   void operator()(T *obj) {
@@ -136,5 +136,6 @@ using ScopedOpenSSLBytes = std::unique_ptr<uint8_t, OpenSSLFree<uint8_t>>;
 using ScopedOpenSSLString = std::unique_ptr<char, OpenSSLFree<char>>;
 
 using ScopedFILE = std::unique_ptr<FILE, FileCloser>;
+#endif
 
 #endif  // OPENSSL_HEADER_CRYPTO_TEST_SCOPED_TYPES_H

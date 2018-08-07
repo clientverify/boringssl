@@ -3,19 +3,19 @@ include_directories(../include)
 add_executable(
   bssl
 
-  args.cc
-  ciphers.cc
-  client.cc
-  const.cc
-  digest.cc
-  generate_ed25519.cc
-  genrsa.cc
-  pkcs12.cc
-  rand.cc
-  server.cc
-  speed.cc
-  tool.cc
-  transport_common.cc
+#  args.cc
+#  ciphers.cc
+  client.c
+#  const.cc
+#  digest.cc
+#  generate_ed25519.cc
+#  genrsa.cc
+#  pkcs12.cc
+#  rand.cc
+#  server.cc
+#  speed.cc
+  tool.c
+  transport_common.c
 )
 
 if (APPLE OR WIN32 OR ANDROID)

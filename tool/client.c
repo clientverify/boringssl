@@ -15,6 +15,8 @@
 #include <openssl/base.h>
 
 #include <stdio.h>
+#include <assert.h>
+#include <string.h>
 
 #include <openssl/err.h>
 #include <openssl/pem.h>
@@ -24,7 +26,8 @@
 #include "../ssl/test/scoped_types.h"
 #include "internal.h"
 #include "transport_common.h"
-
+#define false 0
+#define true 1
 
 #ifdef CLIVER
 #include <openssl/KTest.h>
@@ -110,18 +113,17 @@ static const struct argument kArguments[] = {
     },
 };
 
-static ScopedEVP_PKEY LoadPrivateKey(char* file) {
-  ScopedBIO bio(BIO_new(BIO_s_file()));
-  if (!bio || !BIO_read_filename(bio.get(), file)) {
-    return nullptr;
+static EVP_PKEY* LoadPrivateKey(char* file) {
+  BIO *bio = BIO_new(BIO_s_file());
+  if (!bio || !BIO_read_filename(bio, file)) {
+    return NULL;
   }
-  ScopedEVP_PKEY pkey(PEM_read_bio_PrivateKey(bio.get(), nullptr, nullptr,
-                                              nullptr));
+  EVP_PKEY *pkey = PEM_read_bio_PrivateKey(bio, NULL, NULL, NULL);
   return pkey;
 }
 
 #ifndef CLIVER
-static bool VersionFromString(uint16_t *out_version,
+static int VersionFromString(uint16_t *out_version,
                               const std::string& version) {
   if (version == "ssl3") {
     *out_version = SSL3_VERSION;
@@ -142,33 +144,42 @@ static bool VersionFromString(uint16_t *out_version,
 
 static int NextProtoSelectCallback(SSL* ssl, uint8_t** out, uint8_t* outlen,
                                    const uint8_t* in, unsigned inlen, void* arg) {
-  *out = reinterpret_cast<uint8_t *>(arg);
-  *outlen = strlen(reinterpret_cast<const char *>(arg));
+  *out = (uint8_t *)(arg);
+  *outlen = strlen((const char *)(arg));
   return SSL_TLSEXT_ERR_OK;
 }
 
-static FILE *g_keylog_file = nullptr;
+static FILE *g_keylog_file = NULL;
 
 static void KeyLogCallback(const SSL *ssl, const char *line) {
   fprintf(g_keylog_file, "%s\n", line);
   fflush(g_keylog_file);
 }
+
+void PrintUsage(const struct argument *templates) {
+  for (size_t i = 0; templates[i].name[0] != 0; i++) {
+    const struct argument *templ = &templates[i];
+    fprintf(stderr, "%s\t%s\n", templ->name, templ->description);
+  }
+}
+
 //#ifdef CLIVER
-bool fail(){
+int fail(){
     PrintUsage(kArguments);
     return false;
 }
 
-bool Client(int argc, char **argv) {
-
+#define WIRE_LIMIT 100
+int Client(int argc, char **argv) {
   //Variables
   char * cipher_string = NULL, *kfile = NULL, *connect_str = NULL,
     *server_name = NULL, *npn_proto = NULL;
-  std::vector<uint8_t> wire;
-  bool ocsp_on = false, sig_cert_time = false;
-  ScopedBIO bio;
-  ScopedSSL ssl;
-  int sock = -1, monotonically_decreasing;
+  char* wire = (char*)malloc(WIRE_LIMIT);
+  int wire_used = 0;
+  int ocsp_on = false, sig_cert_time = false;
+  BIO *bio;
+  SSL *ssl;
+  int sock = -1, monotonically_decreasing = -1;
 
   if(argc < 1) return fail();
 while(argc > 0){
@@ -246,9 +257,10 @@ while(argc > 0){
         fprintf(stderr, "Invalid ALPN protocols: '%s'\n", alpn_protos);
         return false;
       }
-      wire.push_back(static_cast<uint8_t>(len));
-      wire.resize(wire.size() + len);
-      memcpy(wire.data() + wire.size() - len, proto, len);
+      memcpy(wire, &len, sizeof(uint8_t));
+      wire_used += sizeof(uint8_t);
+      assert(wire_used + len <= WIRE_LIMIT);
+      memcpy(wire + wire_used, proto, len);
 
       proto = strtok(NULL, ",");
     }
@@ -289,6 +301,7 @@ while(argc > 0){
   }
 
 
+
   if(strcmp(*argv, "-connect") == 0){
     argv++;
     argc--;
@@ -319,72 +332,75 @@ while(argc > 0){
     return false;
   }
 
-  ScopedSSL_CTX ctx(SSL_CTX_new(SSLv23_client_method()));
+  SSL_CTX *ctx = SSL_CTX_new(SSLv23_client_method());
 
   const char *keylog_file = getenv("SSLKEYLOGFILE");
   if (keylog_file) {
     g_keylog_file = fopen(keylog_file, "a");
-    if (g_keylog_file == nullptr) {
+    if (g_keylog_file == NULL) {
       perror("fopen");
       return false;
     }
-    SSL_CTX_set_keylog_callback(ctx.get(), KeyLogCallback);
+    SSL_CTX_set_keylog_callback(ctx, KeyLogCallback);
   }
 
   if(cipher_string != NULL &&
-    !SSL_CTX_set_cipher_list(ctx.get(), cipher_string)){
+    !SSL_CTX_set_cipher_list(ctx, cipher_string)){
     fprintf(stderr, "Failed setting cipher list\n");
     return false;
   }
 
   if(npn_proto != NULL){
     // |SSL_CTX_set_next_proto_select_cb| is not const-correct.
-    SSL_CTX_set_next_proto_select_cb(ctx.get(), NextProtoSelectCallback,
+    SSL_CTX_set_next_proto_select_cb(ctx, NextProtoSelectCallback,
                                      npn_proto);
   }
 
 
-  if (wire.size() != 0 &&
-    SSL_CTX_set_alpn_protos(ctx.get(), wire.data(), wire.size()) != 0) {
+  if (wire_used != 0 &&
+    SSL_CTX_set_alpn_protos(ctx, (uint8_t*)wire, wire_used) != 0) {
     return false;
   }
 
-  if(ocsp_on) SSL_CTX_enable_ocsp_stapling(ctx.get());
-  if(sig_cert_time) SSL_CTX_enable_signed_cert_timestamps(ctx.get());
+
+  if(ocsp_on) SSL_CTX_enable_ocsp_stapling(ctx);
+  if(sig_cert_time) SSL_CTX_enable_signed_cert_timestamps(ctx);
   if(kfile != NULL){
-    ScopedEVP_PKEY pkey = LoadPrivateKey(kfile);
-    if (!pkey || !SSL_CTX_set1_tls_channel_id(ctx.get(), pkey.get())) {
+    EVP_PKEY *pkey = LoadPrivateKey(kfile);
+    if (!pkey || !SSL_CTX_set1_tls_channel_id(ctx, pkey)) {
       return false;
     }
   }
+
 
   if(connect_str != NULL) {
     if (!Connect(&sock, connect_str)) {
         return false;
     }
-    bio = ScopedBIO(BIO_new_socket(sock, BIO_CLOSE));
-    ssl = ScopedSSL(SSL_new(ctx.get()));
-  } else return fail();
-
-  if(server_name != NULL) {
-    SSL_set_tlsext_host_name(ssl.get(), server_name);
+    bio = BIO_new_socket(sock, BIO_CLOSE);
+    ssl = SSL_new(ctx);
+  } else {
+    return fail();
   }
 
-  SSL_set_bio(ssl.get(), bio.get(), bio.get());
-  bio.release();
+  if(server_name != NULL) {
+    SSL_set_tlsext_host_name(ssl, server_name);
+  }
 
-  int ret = SSL_connect(ssl.get());
+  SSL_set_bio(ssl, bio, bio);
+
+  int ret = SSL_connect(ssl);
   if (ret != 1) {
-    int ssl_err = SSL_get_error(ssl.get(), ret);
+    int ssl_err = SSL_get_error(ssl, ret);
     fprintf(stderr, "Error while connecting: %d\n", ssl_err);
     ERR_print_errors_cb(PrintErrorCallback, stderr);
     return false;
   }
 
   fprintf(stderr, "Connected.\n");
-  PrintConnectionInfo(ssl.get());
-  bool ok = TransferData(ssl.get(), sock);
-
+  PrintConnectionInfo(ssl);
+  int ok = TransferData(ssl, sock);
+//free bio...
 #ifdef CLIVER
   ktest_finish();
 #endif

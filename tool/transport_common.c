@@ -14,8 +14,6 @@
 
 #include <openssl/base.h>
 
-#include <string>
-#include <vector>
 
 #include <errno.h>
 #include <stddef.h>
@@ -51,13 +49,10 @@ typedef int ssize_t;
 #include <openssl/KTest.h>
 #endif
 
-#if !defined(OPENSSL_WINDOWS)
-static int closesocket(int sock) {
-  return close(sock);
-}
-#endif
+#define false 0
+#define true 1
 
-bool InitSocketLibrary() {
+int InitSocketLibrary() {
 #if defined(OPENSSL_WINDOWS)
   WSADATA wsaData;
   int err = WSAStartup(MAKEWORD(2, 2), &wsaData);
@@ -73,7 +68,7 @@ bool InitSocketLibrary() {
 // Connect sets |*out_sock| to be a socket connected to the destination given
 // in |hostname_and_port|, which should be of the form "www.example.com:123".
 // It returns true on success and false otherwise.
-bool Connect(int *out_sock, char *hostname_and_port) {
+int Connect(int *out_sock, char *hostname_and_port) {
   const char* hostname, * port;
   char* str = strchr(hostname_and_port, ':');
   if(str == NULL){
@@ -102,7 +97,7 @@ bool Connect(int *out_sock, char *hostname_and_port) {
     return false;
   }
 
-  bool ok = false;
+  int ok = false;
   char buf[256];
 
   *out_sock =
@@ -115,7 +110,7 @@ bool Connect(int *out_sock, char *hostname_and_port) {
   switch (result->ai_family) {
     case AF_INET: {
       struct sockaddr_in *sin =
-          reinterpret_cast<struct sockaddr_in *>(result->ai_addr);
+          (struct sockaddr_in *)(result->ai_addr);
       fprintf(stderr, "Connecting to %s:%d\n",
               inet_ntop(result->ai_family, &sin->sin_addr, buf, sizeof(buf)),
               ntohs(sin->sin_port));
@@ -123,7 +118,7 @@ bool Connect(int *out_sock, char *hostname_and_port) {
     }
     case AF_INET6: {
       struct sockaddr_in6 *sin6 =
-          reinterpret_cast<struct sockaddr_in6 *>(result->ai_addr);
+          (struct sockaddr_in6 *)(result->ai_addr);
       fprintf(stderr, "Connecting to [%s]:%d\n",
               inet_ntop(result->ai_family, &sin6->sin6_addr, buf, sizeof(buf)),
               ntohs(sin6->sin6_port));
@@ -154,39 +149,6 @@ out:
 }
 
 
-bool Accept(int *out_sock, const std::string &port) {
-  struct sockaddr_in6 addr, cli_addr;
-  socklen_t cli_addr_len = sizeof(cli_addr);
-  memset(&addr, 0, sizeof(addr));
-
-  addr.sin6_family = AF_INET6;
-  addr.sin6_addr = in6addr_any;
-  addr.sin6_port = htons(atoi(port.c_str()));
-
-  bool ok = false;
-  int server_sock = -1;
-
-  server_sock =
-      socket(addr.sin6_family, SOCK_STREAM, 0);
-  if (server_sock < 0) {
-    perror("socket");
-    goto out;
-  }
-
-  if (bind(server_sock, (struct sockaddr*)&addr, sizeof(addr)) != 0) {
-    perror("connect");
-    goto out;
-  }
-  listen(server_sock, 1);
-  *out_sock = accept(server_sock, (struct sockaddr*)&cli_addr, &cli_addr_len);
-
-  ok = true;
-
-out:
-  closesocket(server_sock);
-  return ok;
-}
-
 void PrintConnectionInfo(const SSL *ssl) {
   const SSL_CIPHER *cipher = SSL_get_current_cipher(ssl);
 
@@ -214,8 +176,8 @@ void PrintConnectionInfo(const SSL *ssl) {
   fprintf(stderr, "  ALPN protocol: %.*s\n", alpn_len, alpn);
 }
 
-bool SocketSetNonBlocking(int sock, bool is_non_blocking) {
-  bool ok;
+int SocketSetNonBlocking(int sock, int is_non_blocking) {
+  int ok;
 #if defined(OPENSSL_WINDOWS)
   u_long arg = is_non_blocking;
   ok = 0 == ioctlsocket(sock, FIONBIO, &arg);
@@ -250,7 +212,7 @@ bool SocketSetNonBlocking(int sock, bool is_non_blocking) {
 // PrintErrorCallback is a callback function from OpenSSL's
 // |ERR_print_errors_cb| that writes errors to a given |FILE*|.
 int PrintErrorCallback(const char *str, size_t len, void *ctx) {
-  fwrite(str, len, 1, reinterpret_cast<FILE*>(ctx));
+  fwrite(str, len, 1, (FILE*)(ctx));
   return 1;
 }
 
@@ -263,8 +225,8 @@ int PrintErrorCallback(const char *str, size_t len, void *ctx) {
 #define FD_ZERO(p)        memset((char *)(p), 0, sizeof(*(p)))
 #endif // CLIVER
 
-bool TransferData(SSL *ssl, int sock) {
-  bool stdin_open = true;
+int TransferData(SSL *ssl, int sock) {
+  int stdin_open = true;
 
   fd_set read_fds;
   FD_ZERO(&read_fds);
