@@ -10,7 +10,7 @@ add_library(
   check.c
   dh_asn1.c
 )
-
+#[[
 add_executable(
   dh_test
 
@@ -21,3 +21,4 @@ add_executable(
 
 target_link_libraries(dh_test crypto)
 add_dependencies(all_tests dh_test)
+]]

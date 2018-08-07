@@ -165,7 +165,7 @@ add_custom_target(all_tests)
 
 add_subdirectory(crypto)
 add_subdirectory(ssl)
-add_subdirectory(ssl/test)
+#add_subdirectory(ssl/test)
 add_subdirectory(tool)
 add_subdirectory(decrepit)
 
@@ -178,6 +178,7 @@ if (NOT ${CMAKE_VERSION} VERSION_LESS "3.2")
   set(MAYBE_USES_TERMINAL USES_TERMINAL)
 endif()
 
+#[[
 add_custom_target(
     run_tests
     COMMAND ${GO_EXECUTABLE} run util/all_tests.go -build-dir
@@ -187,3 +188,4 @@ add_custom_target(
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     DEPENDS all_tests bssl_shim
     ${MAYBE_USES_TERMINAL})
+]]

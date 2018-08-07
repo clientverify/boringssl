@@ -19,6 +19,7 @@ add_library(
   socket_helper.c
 )
 
+#[[
 add_executable(
   bio_test
 
@@ -32,3 +33,4 @@ if (WIN32)
   target_link_libraries(bio_test ws2_32)
 endif()
 add_dependencies(all_tests bio_test)
+]]
